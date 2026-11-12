@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { channels, missions, type Mission } from "@/data/cv";
 import { ArrowRight, Float, SceneHead, cssVars } from "@/components/parts";
 
@@ -58,8 +58,14 @@ export default function Missions() {
                         {m.kind}
                         {m.year ? ` / ${m.year}` : ""}
                       </p>
-                      <h3 className="display mt-2 text-[clamp(2rem,3vw,2.6rem)] [overflow-wrap:anywhere]">
-                        {m.title}
+                      <h3 className="display mt-2 text-[clamp(1.8rem,2.3vw,2.5rem)] [overflow-wrap:break-word]">
+                        {/* domain names may break before their dot, never mid-word */}
+                        {m.title.split(/(?=\.)/).map((part, n) => (
+                          <Fragment key={n}>
+                            {n > 0 && <wbr />}
+                            {part}
+                          </Fragment>
+                        ))}
                       </h3>
                       <p className="mt-3 font-medium">{m.blurb}</p>
                       {m.stack.length > 0 && (

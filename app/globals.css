@@ -706,12 +706,12 @@ main {
     animation: power-on 900ms var(--ease-out) 120ms both;
   }
   .slam {
-    animation: slam 520ms var(--ease-out) both;
-    animation-delay: calc(560ms + var(--i, 0) * 90ms);
+    animation: slam 420ms var(--ease-out) both;
+    animation-delay: calc(140ms + var(--i, 0) * 80ms);
   }
   .rise {
-    animation: rise 700ms var(--ease-out) both;
-    animation-delay: calc(900ms + var(--i, 0) * 80ms);
+    animation: rise 500ms var(--ease-out) both;
+    animation-delay: calc(420ms + var(--i, 0) * 70ms);
   }
   .cue svg {
     animation: cue 0.75s var(--ease-in-out) 1.6s 6 alternate;
@@ -731,14 +731,9 @@ main {
 }
 @keyframes slam {
   0% {
-    opacity: 0;
-    transform: translate3d(-0.12em, 0.06em, 0) scale(1.5);
-  }
-  12% {
-    opacity: 1;
+    transform: translate3d(-0.12em, 0.06em, 0) scale(1.35);
   }
   100% {
-    opacity: 1;
     transform: none;
   }
 }
@@ -822,6 +817,19 @@ html:not(.motion) .stage-tint {
 .stage-tags > * {
   position: absolute;
   top: 0;
+  width: 22px;
+}
+/* centred in the side gutter: outside the .wrap content column */
+.stage-tags > [data-side="l"] {
+  left: calc(max(0px, (100vw - 1360px) / 2) + var(--gutter) / 2 - 11px);
+}
+.stage-tags > [data-side="r"] {
+  right: calc(max(0px, (100vw - 1360px) / 2) + var(--gutter) / 2 - 11px);
+}
+@media (max-width: 1199px) {
+  .stage-tags {
+    display: none;
+  }
 }
 /* the HUD owns the bottom edge; the lobby's last row sits above it */
 [data-scene="lobby"],
@@ -829,11 +837,13 @@ html:not(.motion) .stage-tint {
   padding-bottom: 48px;
 }
 .tag {
-  padding: 0.3em 0.9em 0.25em;
+  display: block;
+  writing-mode: vertical-rl;
+  padding: 0.9em 0.25em 0.9em 0.3em;
   background: var(--tag-bg, var(--fx-accent));
   color: var(--ink);
   white-space: nowrap;
-  clip-path: polygon(0 10%, 3% 0, 6% 12%, 9% 0, 100% 0, 98% 40%, 100% 70%, 97% 100%, 0 100%, 2% 55%);
+  clip-path: polygon(10% 0, 0 4%, 14% 7%, 0 10%, 0 100%, 40% 97%, 70% 100%, 100% 96%, 100% 0, 55% 3%);
 }
 .tag--peri {
   --tag-bg: var(--peri);
@@ -1024,11 +1034,7 @@ html:not(.motion) .stage-tags,
 html:not(.motion) .crt-grain {
   display: none;
 }
-@media (max-width: 760px) {
-  .stage-tags .tag--far {
-    display: none;
-  }
-}
+
 
 /* PAUSE FX toggle and what it stops */
 .hud-btn {

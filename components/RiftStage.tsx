@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useSyncExternalStore } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import Lenis from "lenis";
+import type GsapCore from "gsap";
+import type { ScrollTrigger as ScrollTriggerType } from "gsap/ScrollTrigger";
+import type LenisType from "lenis";
 import type { Channel } from "@/data/cv";
 
 /* ---------------------------------------------------------------------------
@@ -55,14 +55,15 @@ function RiftCore() {
 
 const SCENES = ["lobby", "profile", "shiftlog", "missions", "loadout", "exit"] as const;
 
-// [label, left %, start (screens down), parallax rate, tilt, tone, hide on phones]
-const TAGS: [string, number, number, number, number, string, boolean][] = [
-  ["Side A", 3, 0.15, 0.22, -4, "", false],
-  ["SP 120", 79, 0.5, 0.5, 5, "peri", false],
-  ["Tracking", 80, 0.95, 0.3, -3, "icy", true],
-  ["Dub", 1, 1.3, 0.7, 4, "peri", true],
-  ["No signal", 70, 0.05, 0.85, -6, "ink", true],
-  ["Rew", 6, 0.8, 0.4, 3, "ink", false],
+// Tape-label spines that drift up the side gutters (never over the content
+// column). [label, side, start (screens down), parallax rate, tone]
+const TAGS: [string, "l" | "r", number, number, string][] = [
+  ["Side A", "l", 0.2, 0.22, ""],
+  ["SP 120", "r", 0.55, 0.5, "peri"],
+  ["Tracking", "r", 1.1, 0.3, "icy"],
+  ["Dub", "l", 1.35, 0.7, "peri"],
+  ["No signal", "r", 0.05, 0.85, "ink"],
+  ["Rew", "l", 0.8, 0.4, "ink"],
 ];
 
 const ARROW = "M3 3 L3 27 L9.5 21 L14 31 L19.5 28.5 L15 19 L24 19 Z";
@@ -110,6 +111,16 @@ export default function RiftStage({ channels }: Props) {
     const ffEl = q("ff");
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const scenes = SCENES.map((id) => document.querySelector<HTMLElement>(`[data-scene="${id}"]`));
+    // Layout is read only when it changes, never inside the readout loop.
+    let tops: number[] = [];
+    let maxScroll = 1;
+    const measure = () => {
+      tops = scenes.map((s) => (s ? s.getBoundingClientRect().top + window.scrollY : Infinity));
+      maxScroll = Math.max(1, document.documentElement.scrollHeight - innerHeight);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(document.body);
     const pad = (n: number) => String(n).padStart(2, "0");
     const t0 = performance.now();
     const last = { ch: "", pct: "", tc: "", ff: "" };
@@ -120,11 +131,11 @@ export default function RiftStage({ channels }: Props) {
     const paint = (now: number) => {
       if (now - prev < 33) return; // 30 readouts a second is the whole point of a timecode
       prev = now;
-      const max = Math.max(1, document.documentElement.scrollHeight - innerHeight);
-      const pct = String(Math.round(Math.min(1, Math.max(0, scrollY / max)) * 100)).padStart(3, "0");
+      const pct = String(Math.round(Math.min(1, Math.max(0, scrollY / maxScroll)) * 100)).padStart(3, "0");
       let idx = 0;
-      scenes.forEach((s, i) => {
-        if (s && s.getBoundingClientRect().top < innerHeight * 0.55) idx = i;
+      const line = scrollY + innerHeight * 0.55;
+      tops.forEach((t, i) => {
+        if (t < line) idx = i;
       });
       const ch = pad(idx + 1);
       const sec = Math.floor((now - t0) / 1000);
@@ -157,12 +168,16 @@ export default function RiftStage({ channels }: Props) {
       timer = window.setInterval(tickOnce, 1000);
       window.addEventListener("scroll", tickOnce, { passive: true });
       return () => {
+        ro.disconnect();
         clearInterval(timer);
         window.removeEventListener("scroll", tickOnce);
       };
     }
     raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(raf);
+    };
   }, [channels]);
 
   /* ---- cursor: chunky arrow, pointing hand on links. Fine pointers only. -- */
@@ -220,441 +235,472 @@ export default function RiftStage({ channels }: Props) {
     const root = document.documentElement;
     if (!root.classList.contains("motion")) return; // static layout: nothing to drive
 
-    gsap.registerPlugin(ScrollTrigger);
-    const $ = <T extends Element>(sel: string, scope: ParentNode = document) =>
-      scope.querySelector(sel) as T;
-    const st = stage.current!;
-    const fx = staticRef.current!;
-
-    /* ---- smooth scroll, on GSAP's clock ------------------------------- */
-    const lenis = new Lenis({ lerp: 0.12, anchors: true });
-    lenis.on("scroll", ScrollTrigger.update);
-    const tick = (t: number) => lenis.raf(t * 1000);
-    gsap.ticker.add(tick);
-    gsap.ticker.lagSmoothing(0);
-
-    /* ---- channel-change static ---------------------------------------- */
-    const cv = document.createElement("canvas");
-    cv.width = cv.height = 128;
-    const cx = cv.getContext("2d");
-    if (cx) {
-      const img = cx.createImageData(128, 128);
-      for (let i = 0; i < img.data.length; i += 4) {
-        const v = 40 + Math.random() * 200;
-        img.data[i] = v;
-        img.data[i + 1] = v;
-        img.data[i + 2] = v + 14;
-        img.data[i + 3] = 255;
-      }
-      cx.putImageData(img, 0, 0);
-      const url = `url(${cv.toDataURL()})`;
-      fx.style.setProperty("--noise", url);
-      crtRef.current?.style.setProperty("--noise", url);
-    }
-    const noise = $<HTMLElement>(".static-noise", fx);
-    const colorBars = $<HTMLElement>(".static-bars", fx);
-    const bars = fx.querySelectorAll<HTMLElement>(".static-bar");
-    const osd = $<HTMLElement>(".static-osd", fx);
-    const osdNum = $<HTMLElement>("[data-osd-num]", fx);
-    const osdName = $<HTMLElement>("[data-osd-name]", fx);
-    const links = document.querySelectorAll<HTMLElement>("[data-ch-link]");
-    const nowNum = document.querySelector<HTMLElement>("[data-now-num]");
-    const nowName = document.querySelector<HTMLElement>("[data-now-name]");
-
-    // One burst, 260ms end to end, mid-grey noise at partial opacity: a channel
-    // flick, not a strobe.
-    const burst = gsap
-      .timeline({ paused: true })
-      // colour-bar flash: one hard frame (~90ms) at partial opacity
-      .set(colorBars, { opacity: 0.5 }, 0)
-      .set(colorBars, { opacity: 0 }, 0.09)
-      .set(noise, { opacity: 0.5, x: 0, y: 0 }, 0)
-      .to(noise, { x: 90, y: -70, duration: 0.2, ease: "steps(5)" }, 0)
-      .set(bars[0], { opacity: 0.85, yPercent: 0, y: "12vh" }, 0)
-      .to(bars[0], { y: "86vh", duration: 0.22, ease: "steps(4)" }, 0)
-      .set(bars[1], { opacity: 0.9, y: "70vh" }, 0.04)
-      .to(bars[1], { y: "18vh", duration: 0.18, ease: "steps(3)" }, 0.04)
-      .set(osd, { opacity: 1, x: 14 }, 0)
-      .to(osd, { x: 0, duration: 0.12, ease: "steps(2)" }, 0)
-      .set([noise, bars[0], bars[1]], { opacity: 0 }, 0.26)
-      .to(osd, { opacity: 0, duration: 0.3, ease: "power1.out" }, 0.75);
-
-    // Rate cap: at most 2 channel changes a second, however fast the page is flung.
-    const MIN_GAP = 500;
-    let lastBurst = -MIN_GAP;
-    let current = -1;
-    const tune = (i: number) => {
-      if (i === current) return;
-      const first = current === -1;
-      current = i;
-      const c = channels[i];
-      osdNum.textContent = c.ch;
-      osdName.textContent = c.title;
-      if (nowNum) nowNum.textContent = c.ch;
-      if (nowName) nowName.textContent = c.title;
-      links.forEach((a, n) => a.setAttribute("aria-current", n === i ? "true" : "false"));
-      const now = performance.now();
-      if (!first && now - lastBurst >= MIN_GAP) {
-        lastBurst = now;
-        burst.restart();
-      }
-    };
-
-    /* ---- fast-scroll layers, read off Lenis' velocity every frame ------- */
-    const fxSpeedEl = $<HTMLElement>(".fx-speed", st);
-    const speedTo = gsap.quickTo(fxSpeedEl, "opacity", { duration: 0.28, ease: "power2.out" });
-    const tagEls = gsap.utils.toArray<HTMLElement>(".stage-tags [data-speed]", st);
-    const tagFx = tagEls.map((el) => ({
-      y: gsap.quickSetter(el, "y", "px") as (v: number) => void,
-      base: parseFloat(el.dataset.base || "0"),
-      k: parseFloat(el.dataset.speed || "0.3"),
-    }));
-    let speedNow = 0;
-    const isPaused = () => root.classList.contains("fx-paused");
-    const layers = () => {
-      const v = isPaused() ? 0 : Math.abs(lenis.velocity);
-      // subtle: lines appear past a brisk scroll and never exceed 20% opacity
-      const target = v > 24 ? Math.min(0.2, ((v - 24) / 70) * 0.2) : 0;
-      const rounded = Math.round(target * 50) / 50;
-      if (rounded !== speedNow) {
-        if (speedNow === 0) gsap.set(fxSpeedEl, { rotation: gsap.utils.random(-12, 12) });
-        speedNow = rounded;
-        speedTo(rounded);
-      }
-      if (isPaused()) return; // tape labels hold still while FX are paused
-      // tape labels: wrap around the screen at their own rates
-      const H = innerHeight + 240;
-      const sy = window.scrollY;
-      tagFx.forEach((t) => t.y(((((t.base * innerHeight - sy * t.k + 120) % H) + H) % H) - 120));
-    };
-    gsap.ticker.add(layers);
-
-    /* ---- ring glitch: one short burst roughly every 6s ------------------ */
-    const gA = $<SVGGElement>(".rift-glitch--a", st);
-    const gB = $<SVGGElement>(".rift-glitch--b", st);
-    const glitch = gsap
-      .timeline({ paused: true })
-      .set(gA, { opacity: 0.9, x: -11 }, 0)
-      .set(gB, { opacity: 0.9, x: 13 }, 0.03)
-      .set(gA, { x: 7 }, 0.06)
-      .set([gA, gB], { opacity: 0, x: 0 }, 0.12);
-    let glitchTimer = 0;
-    const scheduleGlitch = () => {
-      glitchTimer = window.setTimeout(() => {
-        // skip if paused, hidden, or a channel burst just flashed (keeps flashes well under 3/s)
-        if (!isPaused() && !document.hidden && performance.now() - lastBurst > 1000) glitch.restart();
-        scheduleGlitch();
-      }, 5200 + Math.random() * 1600);
-    };
-    scheduleGlitch();
-
-    /* ---- content entrances: fire once, never rebuilt ------------------- */
-    const FROM: Record<string, gsap.TweenVars> = {
-      rise: { y: 28, opacity: 0 },
-      slam: { x: -28, scale: 1.18, skewX: -22, opacity: 0, transformOrigin: "0% 100%" },
-      panel: { y: 70, x: 34, rotation: 6, opacity: 0 },
-      sticker: { scale: 1.32, rotation: -7, y: -34, opacity: 0 },
-      // a tape case tipping up off the shelf: hinged at the bottom edge
-      tape: { rotationX: -78, y: 36, opacity: 0, transformPerspective: 900, transformOrigin: "50% 100%" },
-      slot: { scale: 0.84, opacity: 0 },
-    };
-    const TO: Record<string, gsap.TweenVars> = {
-      rise: { duration: 0.5, ease: "expo.out", stagger: 0.07 },
-      slam: { duration: 0.34, ease: "expo.out", stagger: 0.07 },
-      panel: { duration: 0.5, ease: "expo.out", stagger: 0.09 },
-      sticker: { duration: 0.38, ease: "back.out(2.1)", stagger: 0.08 },
-      tape: { duration: 0.45, ease: "expo.out", stagger: 0.07 },
-      slot: { duration: 0.26, ease: "back.out(3)", stagger: 0.035 },
-    };
-    const entrances = gsap.context(() => {
-      Object.keys(FROM).forEach((kind) => {
-        const els = gsap.utils
-          .toArray<HTMLElement>(`[data-enter="${kind}"]`)
-          .filter((el) => el.getBoundingClientRect().top > innerHeight * 0.9);
-        if (!els.length) return;
-        gsap.set(els, FROM[kind]);
-        if (kind === "slam") els.forEach((e) => e.classList.add("pre-slam"));
-        ScrollTrigger.batch(els, {
-          start: "top 88%",
-          once: true,
-          onEnter: (batch) => {
-            // the hard shadow (a transformed pseudo-element) slides out as it lands
-            if (kind === "slam") batch.forEach((e) => e.classList.remove("pre-slam"));
-            gsap.to(batch, {
-              x: 0,
-              y: 0,
-              scale: 1,
-              skewX: 0,
-              rotationX: 0,
-              rotation: 0,
-              opacity: 1,
-              overwrite: true,
-              clearProps: "transform",
-              ...TO[kind],
-            });
-          },
-        });
-      });
-      SCENES.forEach((id, i) => {
-        ScrollTrigger.create({
-          trigger: `[data-scene="${id}"]`,
-          start: "top 55%",
-          end: "bottom 55%",
-          onToggle: (self) => self.isActive && tune(i),
-        });
-      });
-    });
-    if (current === -1) tune(0);
-
-    /* ---- THE MASTER TIMELINE ------------------------------------------ */
-    const rift = $<HTMLElement>(".rift", st);
-    const ring = $<HTMLElement>(".rift-ring", st);
-    const slash = $<HTMLElement>(".rift-slash", st);
-    const ticks = $<HTMLElement>(".rift-ticks", st);
-    const frame = $<HTMLElement>(".rift-frame", st);
-    const orbit = $<HTMLElement>(".rift-orbit", st);
-    const arrow = $<HTMLElement>(".arrow", st);
-    const wipe = $<HTMLElement>(".stage-wipe", st);
-    const hud = hudRef.current!;
-    const tint = $<HTMLElement>(".stage-tint", st);
-    const htA = $<HTMLElement>(".stage-ht--a", st);
-    const htB = $<HTMLElement>(".stage-ht--b", st);
-    const speed = $<HTMLElement>(".stage-speed", st);
-
-    let master: gsap.Context | null = null;
-
-    const build = () => {
-      master?.revert();
-      master = gsap.context(() => {
-        const vw = innerWidth;
-        const vh = innerHeight;
-        const m = vw < 820; // phone + small tablet: the rift lives behind the copy
-        const max = Math.max(1, ScrollTrigger.maxScroll(window));
-        const secs = SCENES.map((id) => $<HTMLElement>(`[data-scene="${id}"]`));
-        const tops = secs.map((s) => s.getBoundingClientRect().top + window.scrollY);
-        const clamp = gsap.utils.clamp(0, max);
-        // scene i is "arriving" while its top travels from 85% to 18% of the screen
-        const span = (i: number) => {
-          const a = clamp(tops[i] - vh * 0.85);
-          const b = clamp(tops[i] - vh * 0.18);
-          return { a, d: Math.max(1, b - a), b: Math.max(a + 1, b) };
-        };
-        const [, P, S, M, L, X] = SCENES.map((_, i) => span(i));
-
-        // time on this timeline === scroll position in px
-        const tl = gsap.timeline({
-          defaults: { ease: "power2.inOut" },
-          scrollTrigger: { start: 0, end: "max", scrub: true },
-        });
-
-        // where the rift sits in each scene, as fractions of the screen
-        const at = m
-          ? {
-              lobby: { x: 0, y: -0.04, s: 1.55, o: 1 },
-              profile: { x: 0.34, y: -0.06, s: 1.35, o: 0.3 },
-              shift: { x: -0.5, y: 0.02, s: 1.7, o: 0.5 },
-              bug: { x: 0.3, y: -0.3, s: 0.34, o: 0.9 },
-              loadout: { x: 0.36, y: 0.12, s: 1.3, o: 0.32 },
-              exit: { x: 0, y: -0.12, s: 0.2, o: 0 },
-            }
-          : {
-              lobby: { x: 0, y: 0.02, s: 1.6, o: 1 },
-              profile: { x: -0.25, y: 0.03, s: 1, o: 1 },
-              shift: { x: -0.5, y: 0.04, s: 2.05, o: 1 },
-              bug: { x: 0.4, y: -0.27, s: 0.4, o: 1 },
-              loadout: { x: 0.25, y: 0.03, s: 0.92, o: 1 },
-              exit: { x: -0.25, y: 0.02, s: 0.2, o: 0 },
-            };
-        const pos = (k: keyof typeof at) => ({
-          x: at[k].x * vw,
-          y: at[k].y * vh,
-          scale: at[k].s,
-          opacity: at[k].o,
-        });
-
-        gsap.set(rift, pos("lobby"));
-        gsap.set(arrow, {
-          x: at.exit.x * vw,
-          y: at.exit.y * vh,
-          rotation: m ? 90 : 0,
-          scale: 0.3,
-          opacity: 0,
-        });
-
-        /* CH.02 PROFILE: slide aside, lock into a framed viewport */
-        tl.to(rift, { ...pos("profile"), duration: P.d }, P.a)
-          .to(ring, { rotation: -120, duration: P.d }, P.a)
-          .fromTo(
-            frame,
-            { opacity: 0, scale: 1.25 },
-            { opacity: 1, scale: 1, duration: P.d * 0.45, ease: "power3.out" },
-            P.a + P.d * 0.55,
-          )
-          ;
-
-        /* CH.03 SHIFT LOG: half off the left edge, rolling like a reel */
-        tl.to(frame, { opacity: 0, scale: 0.9, duration: S.d * 0.35, ease: "power2.in" }, S.a)
-          .to(rift, { ...pos("shift"), duration: S.d }, S.a)
-          .to(ticks, { opacity: 1, duration: S.d * 0.5 }, S.a + S.d * 0.5);
-        const roll = Math.max(1, M.a - S.b);
-        tl.to(ring, { rotation: -120 - (roll / vh) * 150, duration: roll, ease: "none" }, S.b);
-
-        /* CH.04 MISSIONS: to the centre, blow open into a full-screen wipe,
-           then shrink into a channel bug in the corner */
-        tl.to(rift, { x: 0, y: 0, scale: m ? 0.9 : 1.1, opacity: 1, duration: M.d * 0.35 }, M.a)
-          .to(ticks, { opacity: 0, duration: M.d * 0.3 }, M.a)
-          .fromTo(
-            wipe,
-            { clipPath: "circle(0% at 50% 50%)" },
-            { clipPath: "circle(125% at 50% 50%)", duration: M.d * 0.55, ease: "power2.in" },
-            M.a + M.d * 0.2,
-          )
-          .to(speed, { opacity: 0.16, duration: M.d * 0.4 }, M.a + M.d * 0.5)
-          .to(rift, { ...pos("bug"), duration: M.d * 0.38 }, M.a + M.d * 0.62);
-        const idle = Math.max(1, L.a - M.b);
-        tl.to(ring, { rotation: "-=200", duration: idle, ease: "none" }, M.b);
-
-        /* CH.05 LOADOUT: the wipe closes onto the rift, the rift splits into orbiting rings */
-        const lx = 50 + at.loadout.x * 100;
-        const ly = 50 + at.loadout.y * 100;
-        tl.to(rift, { ...pos("loadout"), duration: L.d }, L.a)
-          .to(speed, { opacity: 0, duration: L.d * 0.5 }, L.a)
-
-          .fromTo(
-            wipe,
-            { clipPath: "circle(125% at 50% 50%)" },
-            {
-              clipPath: `circle(0% at ${lx}% ${ly}%)`,
-              duration: L.d * 0.8,
-              ease: "power2.out",
-              immediateRender: false,
-            },
-            L.a,
-          )
-          .to([ring, slash], { scale: 0.56, duration: L.d * 0.5, ease: "power3.out" }, L.a + L.d * 0.5)
-          .fromTo(
-            orbit,
-            { opacity: 0, scale: 0.2, rotation: -80 },
-            { opacity: 1, scale: 1, rotation: 0, duration: L.d * 0.5, ease: "power3.out" },
-            L.a + L.d * 0.5,
-          );
-        const spin = Math.max(1, X.a - L.b);
-        tl.to(orbit, { rotation: (spin / vh) * 170, duration: spin, ease: "none" }, L.b).to(
-          ring,
-          { rotation: "-=120", duration: spin, ease: "none" },
-          L.b,
-        );
-
-        /* CH.06 EXIT: rings fall back in, the rift collapses into the arrow */
-        tl.to(orbit, { opacity: 0, scale: 0.1, duration: X.d * 0.45, ease: "power2.in" }, X.a)
-          .to(rift, { ...pos("exit"), duration: X.d * 0.6, ease: "power2.in" }, X.a)
-
-          .to(
-            arrow,
-            { opacity: 1, scale: m ? 0.62 : 1, duration: X.d * 0.42, ease: "back.out(1.7)" },
-            X.a + X.d * 0.56,
-          );
-
-        // phone: the arrow sits in the gap above the panel and leaves with it
-        if (m && max - X.b > 2) {
-          tl.to(arrow, { y: at.exit.y * vh - (max - X.b), duration: max - X.b, ease: "none" }, X.b);
-        }
-
-        /* parallax: three depths behind everything */
-        tl.to(htA, { y: -vh * 0.75, x: vw * 0.07, duration: max, ease: "none" }, 0)
-          .to(htB, { y: -vh * 0.28, x: -vw * 0.05, duration: max, ease: "none" }, 0)
-          .to(speed, { x: -vh * 0.5, y: -vh * 0.8, duration: max, ease: "none" }, 0);
-
-        /* parallax: floating stickers inside the scenes, each at its own depth */
-        gsap.utils.toArray<HTMLElement>("[data-depth]").forEach((el) => {
-          const sec = el.closest<HTMLElement>("[data-scene]");
-          if (!sec) return;
-          const depth = parseFloat(el.dataset.depth || "0.3");
-          const top = sec.getBoundingClientRect().top + window.scrollY;
-          const a = clamp(top - vh);
-          const b = clamp(top + sec.offsetHeight);
-          if (b - a < 2) return;
-          const p0 = (a - (top - vh)) / (sec.offsetHeight + vh); // where in its run it starts
-          const p1 = (b - (top - vh)) / (sec.offsetHeight + vh);
-          const travel = depth * 260;
-          tl.fromTo(
-            el,
-            { y: travel * (0.5 - p0) },
-            { y: travel * (0.5 - p1), duration: b - a, ease: "none", immediateRender: true },
-            a,
-          );
-        });
-
-        /* per-scene palette, kept off the paint path: the ground is a flat navy
-           layer whose opacity scrubs; only the small accent chips (HUD, tape
-           labels) take an interpolated colour from the locked tokens. */
-        const css = getComputedStyle(root);
-        const ACCENT = ["pink", "pink", "cyan", "amber", "cyan", "pink"].map((n) =>
-          css.getPropertyValue(`--${n}`).trim(),
-        );
-        const GROUND = [0, 0.7, 1, 1, 0.3, 0];
-        const pal = { t: 0 };
-        let shown = "";
-        const applyPal = () => {
-          const v = gsap.utils.interpolate(ACCENT, pal.t / (ACCENT.length - 1)) as string;
-          if (v === shown) return;
-          shown = v;
-          st.style.setProperty("--fx-accent", v);
-          hud.style.setProperty("--fx-accent", v);
-        };
-        [P, S, M, L, X].forEach((sp, n) => {
-          tl.fromTo(
-            pal,
-            { t: n },
-            { t: n + 1, duration: sp.d, ease: "none", immediateRender: false, onUpdate: applyPal },
-            sp.a,
-          ).fromTo(
-            tint,
-            { opacity: GROUND[n] },
-            { opacity: GROUND[n + 1], duration: sp.d, ease: "none", immediateRender: false },
-            sp.a,
-          );
-        });
-        applyPal();
-
-        tl.set({}, {}, max); // pad so 1s === 1px for the whole page
-      });
-    };
-
-    build();
-    document.fonts?.ready.then(() => {
-      build();
-      ScrollTrigger.refresh();
-    });
-
-    // rebuild on a real resize; ignore the phone's address bar sliding away
-    let w = innerWidth;
-    let h = innerHeight;
-    let timer = 0;
-    const onResize = () => {
-      if (innerWidth === w && Math.abs(innerHeight - h) < 140) return;
-      w = innerWidth;
-      h = innerHeight;
-      clearTimeout(timer);
-      timer = window.setTimeout(() => {
-        ScrollTrigger.refresh();
-        build();
-      }, 160);
-    };
-    window.addEventListener("resize", onResize);
-
+    // The motion libraries load after hydration so they stay out of the
+    // first paint's critical path; the page is complete without them.
+    let alive = true;
+    let stop: (() => void) | undefined;
+    const boot = () =>
+      Promise.all([import("gsap"), import("gsap/ScrollTrigger"), import("lenis")]).then(
+        ([g, st, l]) => {
+          if (alive) stop = run(g.default, st.ScrollTrigger, l.default);
+        },
+      );
+    // Fetch them once the page has loaded, so they never compete with first paint.
+    const later = () => window.setTimeout(boot, 0);
+    if (document.readyState === "complete") later();
+    else window.addEventListener("load", later, { once: true });
     return () => {
-      window.removeEventListener("resize", onResize);
-      clearTimeout(timer);
-      clearTimeout(glitchTimer);
-      glitch.kill();
-      burst.kill();
-      master?.revert();
-      entrances.revert();
-      gsap.ticker.remove(tick);
-      gsap.ticker.remove(layers);
-      lenis.destroy();
+      alive = false;
+      window.removeEventListener("load", later);
+      stop?.();
     };
+
+    function run(
+      gsap: typeof GsapCore,
+      ScrollTrigger: typeof ScrollTriggerType,
+      Lenis: typeof LenisType,
+    ) {
+      gsap.registerPlugin(ScrollTrigger);
+      const $ = <T extends Element>(sel: string, scope: ParentNode = document) =>
+        scope.querySelector(sel) as T;
+      const st = stage.current!;
+      const fx = staticRef.current!;
+
+      /* ---- smooth scroll, on GSAP's clock ------------------------------- */
+      const lenis = new Lenis({ lerp: 0.12, anchors: true });
+      lenis.on("scroll", ScrollTrigger.update);
+      const tick = (t: number) => lenis.raf(t * 1000);
+      gsap.ticker.add(tick);
+      gsap.ticker.lagSmoothing(0);
+
+      /* ---- channel-change static ---------------------------------------- */
+      const cv = document.createElement("canvas");
+      cv.width = cv.height = 128;
+      const cx = cv.getContext("2d");
+      if (cx) {
+        const img = cx.createImageData(128, 128);
+        for (let i = 0; i < img.data.length; i += 4) {
+          const v = 40 + Math.random() * 200;
+          img.data[i] = v;
+          img.data[i + 1] = v;
+          img.data[i + 2] = v + 14;
+          img.data[i + 3] = 255;
+        }
+        cx.putImageData(img, 0, 0);
+        const url = `url(${cv.toDataURL()})`;
+        fx.style.setProperty("--noise", url);
+        crtRef.current?.style.setProperty("--noise", url);
+      }
+      const noise = $<HTMLElement>(".static-noise", fx);
+      const colorBars = $<HTMLElement>(".static-bars", fx);
+      const bars = fx.querySelectorAll<HTMLElement>(".static-bar");
+      const osd = $<HTMLElement>(".static-osd", fx);
+      const osdNum = $<HTMLElement>("[data-osd-num]", fx);
+      const osdName = $<HTMLElement>("[data-osd-name]", fx);
+      const links = document.querySelectorAll<HTMLElement>("[data-ch-link]");
+      const nowNum = document.querySelector<HTMLElement>("[data-now-num]");
+      const nowName = document.querySelector<HTMLElement>("[data-now-name]");
+
+      // One burst, 260ms end to end, mid-grey noise at partial opacity: a channel
+      // flick, not a strobe.
+      const burst = gsap
+        .timeline({ paused: true })
+        // colour-bar flash: one hard frame (~90ms) at partial opacity
+        .set(colorBars, { opacity: 0.5 }, 0)
+        .set(colorBars, { opacity: 0 }, 0.09)
+        .set(noise, { opacity: 0.5, x: 0, y: 0 }, 0)
+        .to(noise, { x: 90, y: -70, duration: 0.2, ease: "steps(5)" }, 0)
+        .set(bars[0], { opacity: 0.85, yPercent: 0, y: "12vh" }, 0)
+        .to(bars[0], { y: "86vh", duration: 0.22, ease: "steps(4)" }, 0)
+        .set(bars[1], { opacity: 0.9, y: "70vh" }, 0.04)
+        .to(bars[1], { y: "18vh", duration: 0.18, ease: "steps(3)" }, 0.04)
+        .set(osd, { opacity: 1, x: 14 }, 0)
+        .to(osd, { x: 0, duration: 0.12, ease: "steps(2)" }, 0)
+        .set([noise, bars[0], bars[1]], { opacity: 0 }, 0.26)
+        .to(osd, { opacity: 0, duration: 0.3, ease: "power1.out" }, 0.75);
+
+      // Rate cap: at most 2 channel changes a second, however fast the page is flung.
+      const MIN_GAP = 500;
+      let lastBurst = -MIN_GAP;
+      let current = -1;
+      const tune = (i: number) => {
+        if (i === current) return;
+        const first = current === -1;
+        current = i;
+        const c = channels[i];
+        osdNum.textContent = c.ch;
+        osdName.textContent = c.title;
+        if (nowNum) nowNum.textContent = c.ch;
+        if (nowName) nowName.textContent = c.title;
+        links.forEach((a, n) => a.setAttribute("aria-current", n === i ? "true" : "false"));
+        const now = performance.now();
+        if (!first && now - lastBurst >= MIN_GAP) {
+          lastBurst = now;
+          burst.restart();
+        }
+      };
+
+      /* ---- fast-scroll layers, read off Lenis' velocity every frame ------- */
+      const fxSpeedEl = $<HTMLElement>(".fx-speed", st);
+      const speedTo = gsap.quickTo(fxSpeedEl, "opacity", { duration: 0.28, ease: "power2.out" });
+      const tagEls = gsap.utils.toArray<HTMLElement>(".stage-tags [data-speed]", st);
+      const tagFx = tagEls.map((el) => ({
+        y: gsap.quickSetter(el, "y", "px") as (v: number) => void,
+        base: parseFloat(el.dataset.base || "0"),
+        k: parseFloat(el.dataset.speed || "0.3"),
+      }));
+      let speedNow = 0;
+      const isPaused = () => root.classList.contains("fx-paused");
+      const layers = () => {
+        const v = isPaused() ? 0 : Math.abs(lenis.velocity);
+        // subtle: lines appear past a brisk scroll and never exceed 20% opacity
+        const target = v > 24 ? Math.min(0.2, ((v - 24) / 70) * 0.2) : 0;
+        const rounded = Math.round(target * 50) / 50;
+        if (rounded !== speedNow) {
+          if (speedNow === 0) gsap.set(fxSpeedEl, { rotation: gsap.utils.random(-12, 12) });
+          speedNow = rounded;
+          speedTo(rounded);
+        }
+        if (isPaused()) return; // tape labels hold still while FX are paused
+        // tape labels: wrap around the screen at their own rates
+        const H = innerHeight + 240;
+        const sy = window.scrollY;
+        tagFx.forEach((t) => t.y(((((t.base * innerHeight - sy * t.k + 120) % H) + H) % H) - 120));
+      };
+      gsap.ticker.add(layers);
+
+      /* ---- ring glitch: one short burst roughly every 6s ------------------ */
+      const gA = $<SVGGElement>(".rift-glitch--a", st);
+      const gB = $<SVGGElement>(".rift-glitch--b", st);
+      const glitch = gsap
+        .timeline({ paused: true })
+        .set(gA, { opacity: 0.9, x: -11 }, 0)
+        .set(gB, { opacity: 0.9, x: 13 }, 0.03)
+        .set(gA, { x: 7 }, 0.06)
+        .set([gA, gB], { opacity: 0, x: 0 }, 0.12);
+      let glitchTimer = 0;
+      const scheduleGlitch = () => {
+        glitchTimer = window.setTimeout(() => {
+          // skip if paused, hidden, or a channel burst just flashed (keeps flashes well under 3/s)
+          if (!isPaused() && !document.hidden && performance.now() - lastBurst > 1000) glitch.restart();
+          scheduleGlitch();
+        }, 5200 + Math.random() * 1600);
+      };
+      scheduleGlitch();
+
+      /* ---- content entrances: fire once, never rebuilt ------------------- */
+      const FROM: Record<string, gsap.TweenVars> = {
+        rise: { y: 28, opacity: 0 },
+        slam: { x: -28, scale: 1.18, skewX: -22, opacity: 0, transformOrigin: "0% 100%" },
+        panel: { y: 70, x: 34, rotation: 6, opacity: 0 },
+        sticker: { scale: 1.32, rotation: -7, y: -34, opacity: 0 },
+        // a tape case tipping up off the shelf: hinged at the bottom edge
+        tape: { rotationX: -78, y: 36, opacity: 0, transformPerspective: 900, transformOrigin: "50% 100%" },
+        slot: { scale: 0.84, opacity: 0 },
+      };
+      const TO: Record<string, gsap.TweenVars> = {
+        rise: { duration: 0.5, ease: "expo.out", stagger: 0.07 },
+        slam: { duration: 0.34, ease: "expo.out", stagger: 0.07 },
+        panel: { duration: 0.5, ease: "expo.out", stagger: 0.09 },
+        sticker: { duration: 0.38, ease: "back.out(2.1)", stagger: 0.08 },
+        tape: { duration: 0.45, ease: "expo.out", stagger: 0.07 },
+        slot: { duration: 0.26, ease: "back.out(3)", stagger: 0.035 },
+      };
+      const entrances = gsap.context(() => {
+        Object.keys(FROM).forEach((kind) => {
+          const els = gsap.utils
+            .toArray<HTMLElement>(`[data-enter="${kind}"]`)
+            .filter((el) => el.getBoundingClientRect().top > innerHeight * 0.9);
+          if (!els.length) return;
+          gsap.set(els, FROM[kind]);
+          if (kind === "slam") els.forEach((e) => e.classList.add("pre-slam"));
+          ScrollTrigger.batch(els, {
+            start: "top 88%",
+            once: true,
+            onEnter: (batch) => {
+              // the hard shadow (a transformed pseudo-element) slides out as it lands
+              if (kind === "slam") batch.forEach((e) => e.classList.remove("pre-slam"));
+              gsap.to(batch, {
+                x: 0,
+                y: 0,
+                scale: 1,
+                skewX: 0,
+                rotationX: 0,
+                rotation: 0,
+                opacity: 1,
+                overwrite: true,
+                clearProps: "transform",
+                ...TO[kind],
+              });
+            },
+          });
+        });
+        SCENES.forEach((id, i) => {
+          ScrollTrigger.create({
+            trigger: `[data-scene="${id}"]`,
+            start: "top 55%",
+            end: "bottom 55%",
+            onToggle: (self) => self.isActive && tune(i),
+          });
+        });
+      });
+      if (current === -1) tune(0);
+
+      /* ---- THE MASTER TIMELINE ------------------------------------------ */
+      const rift = $<HTMLElement>(".rift", st);
+      const ring = $<HTMLElement>(".rift-ring", st);
+      const slash = $<HTMLElement>(".rift-slash", st);
+      const ticks = $<HTMLElement>(".rift-ticks", st);
+      const frame = $<HTMLElement>(".rift-frame", st);
+      const orbit = $<HTMLElement>(".rift-orbit", st);
+      const arrow = $<HTMLElement>(".arrow", st);
+      const wipe = $<HTMLElement>(".stage-wipe", st);
+      const hud = hudRef.current!;
+      const tint = $<HTMLElement>(".stage-tint", st);
+      const htA = $<HTMLElement>(".stage-ht--a", st);
+      const htB = $<HTMLElement>(".stage-ht--b", st);
+      const speed = $<HTMLElement>(".stage-speed", st);
+
+      let master: gsap.Context | null = null;
+
+      const build = () => {
+        master?.revert();
+        master = gsap.context(() => {
+          const vw = innerWidth;
+          const vh = innerHeight;
+          const m = vw < 820; // phone + small tablet: the rift lives behind the copy
+          const max = Math.max(1, ScrollTrigger.maxScroll(window));
+          const secs = SCENES.map((id) => $<HTMLElement>(`[data-scene="${id}"]`));
+          const tops = secs.map((s) => s.getBoundingClientRect().top + window.scrollY);
+          const clamp = gsap.utils.clamp(0, max);
+          // scene i is "arriving" while its top travels from 85% to 18% of the screen
+          const span = (i: number) => {
+            const a = clamp(tops[i] - vh * 0.85);
+            const b = clamp(tops[i] - vh * 0.18);
+            return { a, d: Math.max(1, b - a), b: Math.max(a + 1, b) };
+          };
+          const [, P, S, M, L, X] = SCENES.map((_, i) => span(i));
+
+          // time on this timeline === scroll position in px
+          const tl = gsap.timeline({
+            defaults: { ease: "power2.inOut" },
+            scrollTrigger: { start: 0, end: "max", scrub: true },
+          });
+
+          // where the rift sits in each scene, as fractions of the screen
+          const at = m
+            ? {
+                lobby: { x: 0, y: -0.04, s: 1.55, o: 1 },
+                profile: { x: 0.34, y: -0.06, s: 1.35, o: 0.3 },
+                shift: { x: -0.5, y: 0.02, s: 1.7, o: 0.5 },
+                bug: { x: 0.3, y: -0.3, s: 0.34, o: 0.9 },
+                loadout: { x: 0.36, y: 0.12, s: 1.3, o: 0.32 },
+                exit: { x: 0, y: -0.12, s: 0.2, o: 0 },
+              }
+            : {
+                lobby: { x: 0, y: 0.02, s: 1.6, o: 1 },
+                profile: { x: -0.25, y: 0.03, s: 1, o: 1 },
+                shift: { x: -0.5, y: 0.04, s: 2.05, o: 1 },
+                bug: { x: 0.4, y: -0.27, s: 0.4, o: 1 },
+                loadout: { x: 0.25, y: 0.03, s: 0.92, o: 1 },
+                exit: { x: -0.25, y: 0.02, s: 0.2, o: 0 },
+              };
+          const pos = (k: keyof typeof at) => ({
+            x: at[k].x * vw,
+            y: at[k].y * vh,
+            scale: at[k].s,
+            opacity: at[k].o,
+          });
+
+          gsap.set(rift, pos("lobby"));
+          gsap.set(arrow, {
+            x: at.exit.x * vw,
+            y: at.exit.y * vh,
+            rotation: m ? 90 : 0,
+            scale: 0.3,
+            opacity: 0,
+          });
+
+          /* CH.02 PROFILE: slide aside, lock into a framed viewport */
+          tl.to(rift, { ...pos("profile"), duration: P.d }, P.a)
+            .to(ring, { rotation: -120, duration: P.d }, P.a)
+            .fromTo(
+              frame,
+              { opacity: 0, scale: 1.25 },
+              { opacity: 1, scale: 1, duration: P.d * 0.45, ease: "power3.out" },
+              P.a + P.d * 0.55,
+            )
+            ;
+
+          /* CH.03 SHIFT LOG: half off the left edge, rolling like a reel */
+          tl.to(frame, { opacity: 0, scale: 0.9, duration: S.d * 0.35, ease: "power2.in" }, S.a)
+            .to(rift, { ...pos("shift"), duration: S.d }, S.a)
+            .to(ticks, { opacity: 1, duration: S.d * 0.5 }, S.a + S.d * 0.5);
+          const roll = Math.max(1, M.a - S.b);
+          tl.to(ring, { rotation: -120 - (roll / vh) * 150, duration: roll, ease: "none" }, S.b);
+
+          /* CH.04 MISSIONS: to the centre, blow open into a full-screen wipe,
+             then shrink into a channel bug in the corner */
+          tl.to(rift, { x: 0, y: 0, scale: m ? 0.9 : 1.1, opacity: 1, duration: M.d * 0.35 }, M.a)
+            .to(ticks, { opacity: 0, duration: M.d * 0.3 }, M.a)
+            .fromTo(
+              wipe,
+              { clipPath: "circle(0% at 50% 50%)" },
+              { clipPath: "circle(125% at 50% 50%)", duration: M.d * 0.55, ease: "power2.in" },
+              M.a + M.d * 0.2,
+            )
+            .to(speed, { opacity: 0.16, duration: M.d * 0.4 }, M.a + M.d * 0.5)
+            .to(rift, { ...pos("bug"), duration: M.d * 0.38 }, M.a + M.d * 0.62);
+          const idle = Math.max(1, L.a - M.b);
+          tl.to(ring, { rotation: "-=200", duration: idle, ease: "none" }, M.b);
+
+          /* CH.05 LOADOUT: the wipe closes onto the rift, the rift splits into orbiting rings */
+          const lx = 50 + at.loadout.x * 100;
+          const ly = 50 + at.loadout.y * 100;
+          tl.to(rift, { ...pos("loadout"), duration: L.d }, L.a)
+            .to(speed, { opacity: 0, duration: L.d * 0.5 }, L.a)
+
+            .fromTo(
+              wipe,
+              { clipPath: "circle(125% at 50% 50%)" },
+              {
+                clipPath: `circle(0% at ${lx}% ${ly}%)`,
+                duration: L.d * 0.8,
+                ease: "power2.out",
+                immediateRender: false,
+              },
+              L.a,
+            )
+            .to([ring, slash], { scale: 0.56, duration: L.d * 0.5, ease: "power3.out" }, L.a + L.d * 0.5)
+            .fromTo(
+              orbit,
+              { opacity: 0, scale: 0.2, rotation: -80 },
+              { opacity: 1, scale: 1, rotation: 0, duration: L.d * 0.5, ease: "power3.out" },
+              L.a + L.d * 0.5,
+            );
+          const spin = Math.max(1, X.a - L.b);
+          tl.to(orbit, { rotation: (spin / vh) * 170, duration: spin, ease: "none" }, L.b).to(
+            ring,
+            { rotation: "-=120", duration: spin, ease: "none" },
+            L.b,
+          );
+
+          /* CH.06 EXIT: rings fall back in, the rift collapses into the arrow */
+          tl.to(orbit, { opacity: 0, scale: 0.1, duration: X.d * 0.45, ease: "power2.in" }, X.a)
+            .to(rift, { ...pos("exit"), duration: X.d * 0.6, ease: "power2.in" }, X.a)
+
+            .to(
+              arrow,
+              { opacity: 1, scale: m ? 0.62 : 1, duration: X.d * 0.42, ease: "back.out(1.7)" },
+              X.a + X.d * 0.56,
+            );
+
+          // phone: the arrow sits in the gap above the panel and leaves with it
+          if (m && max - X.b > 2) {
+            tl.to(arrow, { y: at.exit.y * vh - (max - X.b), duration: max - X.b, ease: "none" }, X.b);
+          }
+
+          /* parallax: three depths behind everything */
+          tl.to(htA, { y: -vh * 0.75, x: vw * 0.07, duration: max, ease: "none" }, 0)
+            .to(htB, { y: -vh * 0.28, x: -vw * 0.05, duration: max, ease: "none" }, 0)
+            .to(speed, { x: -vh * 0.5, y: -vh * 0.8, duration: max, ease: "none" }, 0);
+
+          /* parallax: floating stickers inside the scenes, each at its own depth */
+          gsap.utils.toArray<HTMLElement>("[data-depth]").forEach((el) => {
+            const sec = el.closest<HTMLElement>("[data-scene]");
+            if (!sec) return;
+            const depth = parseFloat(el.dataset.depth || "0.3");
+            const top = sec.getBoundingClientRect().top + window.scrollY;
+            const a = clamp(top - vh);
+            const b = clamp(top + sec.offsetHeight);
+            if (b - a < 2) return;
+            const p0 = (a - (top - vh)) / (sec.offsetHeight + vh); // where in its run it starts
+            const p1 = (b - (top - vh)) / (sec.offsetHeight + vh);
+            const travel = depth * 260;
+            tl.fromTo(
+              el,
+              { y: travel * (0.5 - p0) },
+              { y: travel * (0.5 - p1), duration: b - a, ease: "none", immediateRender: true },
+              a,
+            );
+          });
+
+          /* per-scene palette, kept off the paint path: the ground is a flat navy
+             layer whose opacity scrubs; only the small accent chips (HUD, tape
+             labels) take an interpolated colour from the locked tokens. */
+          const css = getComputedStyle(root);
+          const ACCENT = ["pink", "pink", "cyan", "amber", "cyan", "pink"].map((n) =>
+            css.getPropertyValue(`--${n}`).trim(),
+          );
+          const GROUND = [0, 0.7, 1, 1, 0.3, 0];
+          const pal = { t: 0 };
+          let shown = "";
+          const applyPal = () => {
+            const v = gsap.utils.interpolate(ACCENT, pal.t / (ACCENT.length - 1)) as string;
+            if (v === shown) return;
+            shown = v;
+            st.style.setProperty("--fx-accent", v);
+            hud.style.setProperty("--fx-accent", v);
+          };
+          [P, S, M, L, X].forEach((sp, n) => {
+            tl.fromTo(
+              pal,
+              { t: n },
+              { t: n + 1, duration: sp.d, ease: "none", immediateRender: false, onUpdate: applyPal },
+              sp.a,
+            ).fromTo(
+              tint,
+              { opacity: GROUND[n] },
+              { opacity: GROUND[n + 1], duration: sp.d, ease: "none", immediateRender: false },
+              sp.a,
+            );
+          });
+          applyPal();
+
+          tl.set({}, {}, max); // pad so 1s === 1px for the whole page
+        });
+      };
+
+      // Build once, when the fonts have settled (measuring before would mean
+      // building twice); fall back to building straight away.
+      const fontsReady = document.fonts?.ready ?? Promise.resolve();
+      let live = true;
+      fontsReady.then(() => {
+        if (!live) return;
+        build();
+        ScrollTrigger.refresh();
+      });
+
+      // rebuild on a real resize; ignore the phone's address bar sliding away
+      let w = innerWidth;
+      let h = innerHeight;
+      let timer = 0;
+      const onResize = () => {
+        if (innerWidth === w && Math.abs(innerHeight - h) < 140) return;
+        w = innerWidth;
+        h = innerHeight;
+        clearTimeout(timer);
+        timer = window.setTimeout(() => {
+          ScrollTrigger.refresh();
+          build();
+        }, 160);
+      };
+      window.addEventListener("resize", onResize);
+
+      return () => {
+        window.removeEventListener("resize", onResize);
+        clearTimeout(timer);
+        clearTimeout(glitchTimer);
+        glitch.kill();
+        burst.kill();
+        live = false;
+        master?.revert();
+        entrances.revert();
+        gsap.ticker.remove(tick);
+        gsap.ticker.remove(layers);
+        lenis.destroy();
+      };
+    }
   }, [channels]);
 
   return (
@@ -662,14 +708,9 @@ export default function RiftStage({ channels }: Props) {
       <div ref={stage} className="stage" aria-hidden="true">
         <div className="stage-tint" />
         <div className="stage-tags">
-          {TAGS.map(([text, x, base, speed, rot, tone, far]) => (
-            <div key={text} data-speed={speed} data-base={base} style={{ left: `${x}%` }}>
-              <span
-                className={`tag micro inline-block ${tone ? `tag--${tone}` : ""} ${far ? "tag--far" : ""}`}
-                style={{ rotate: `${rot}deg` }}
-              >
-                {text}
-              </span>
+          {TAGS.map(([text, side, base, speed, tone]) => (
+            <div key={text} data-speed={speed} data-base={base} data-side={side}>
+              <span className={`tag micro ${tone ? `tag--${tone}` : ""}`}>{text}</span>
             </div>
           ))}
         </div>

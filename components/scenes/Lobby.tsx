@@ -12,7 +12,7 @@ export default function Lobby() {
       <Float depth={0.5} className="right-[6%] top-[16%] rotate-6">
         <span className="sticker sticker--red micro">On air</span>
       </Float>
-      <Float depth={0.9} className="left-[5%] top-[22%] -rotate-6 max-md:hidden">
+      <Float depth={0.9} className="left-[5%] top-[22%] -rotate-6 max-lg:hidden">
         <span className="sticker sticker--ink micro">Insert tape</span>
       </Float>
 
