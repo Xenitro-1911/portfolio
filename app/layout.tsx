@@ -20,6 +20,8 @@ const mono = Space_Mono({
   subsets: ["latin"],
   variable: "--font-mono-face",
   display: "swap",
+  // small labels only: let the display face (the LCP) have the bandwidth
+  preload: false,
 });
 // Japanese faces ship as many small unicode-range slices; the browser only
 // fetches the slice holding the handful of katakana on the page.

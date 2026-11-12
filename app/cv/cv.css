@@ -50,6 +50,15 @@ html:has(.cv-page) body {
   gap: 0 4mm;
   margin-top: 1.5mm;
 }
+@media screen {
+  /* comfortable tap targets on screen; print keeps the tight line */
+  .cv-contact a,
+  .cv-bar a {
+    display: inline-block;
+    min-height: 24px;
+    padding: 3px 0;
+  }
+}
 .cv-avail {
   margin-top: 1mm;
 }
