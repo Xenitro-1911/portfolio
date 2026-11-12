@@ -19,13 +19,29 @@ export default function Missions() {
       <div className="wrap relative">
         <SceneHead channel={channels[3]} shadow="var(--ink)" />
         <p className="mt-5 max-w-[60ch] text-[1.125rem] font-medium" data-enter="rise">
-          Six tapes off the shelf. Each button on a case opens the project.
+          Six tapes off the shelf. Click a case, or its button, to open the project.
         </p>
 
         <ul className="mt-14 grid gap-x-9 gap-y-12 sm:grid-cols-2 xl:grid-cols-3">
-          {missions.map((m, i) => (
+          {missions.map((m, i) => {
+            // exactly one URL: the whole card is that link (stretched link on the title).
+            // Several URLs: the card is not a link, each button is. None: plain card.
+            const single = m.links?.length === 1 ? m.links[0] : null;
+            const many = (m.links?.length ?? 0) > 1 ? m.links! : null;
+            const title = (
+              <h3 className="display mt-2 text-[clamp(1.8rem,2.3vw,2.5rem)] [overflow-wrap:break-word]">
+                {/* domain names may break before their dot, never mid-word */}
+                {m.title.split(/(?=\.)/).map((part, n) => (
+                  <Fragment key={n}>
+                    {n > 0 && <wbr />}
+                    {part}
+                  </Fragment>
+                ))}
+              </h3>
+            );
+            return (
             <li key={m.id} className={TILT[i % TILT.length]} data-enter="tape">
-              <article className={`case h-full ${m.links?.length ? "case--link" : ""}`}>
+              <article className={`case h-full ${single ? "case--link" : ""}`}>
                 <div className="case-body">
                   <div className="case-spine micro" aria-hidden="true">
                     <span>{m.title}</span>
@@ -47,15 +63,19 @@ export default function Missions() {
                         {m.kind}
                         {m.year ? ` / ${m.year}` : ""}
                       </p>
-                      <h3 className="display mt-2 text-[clamp(1.8rem,2.3vw,2.5rem)] [overflow-wrap:break-word]">
-                        {/* domain names may break before their dot, never mid-word */}
-                        {m.title.split(/(?=\.)/).map((part, n) => (
-                          <Fragment key={n}>
-                            {n > 0 && <wbr />}
-                            {part}
-                          </Fragment>
-                        ))}
-                      </h3>
+                      {single ? (
+                        <a
+                          href={single.href}
+                          className="case-link"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {title}
+                          <span className="sr-only">(opens in a new tab)</span>
+                        </a>
+                      ) : (
+                        title
+                      )}
                       <p className="mt-3 font-medium">{m.blurb}</p>
                       {m.stack.length > 0 && (
                         <ul className="micro mt-4 flex flex-wrap gap-x-3 gap-y-1 font-bold" aria-label="Built with">
@@ -65,9 +85,15 @@ export default function Missions() {
                         </ul>
                       )}
                       <div className="mt-auto pt-5">
-                        {m.links?.length ? (
+                        {single ? (
+                          // decorative: a click on it lands on the stretched link above
+                          <span className="case-go micro" aria-hidden="true">
+                            {single.label}
+                            <ArrowRight className="h-[0.9em] w-[1.2em]" />
+                          </span>
+                        ) : many ? (
                           <div className="flex flex-wrap gap-2.5">
-                            {m.links.map((l) => (
+                            {many.map((l) => (
                               <a
                                 key={l.href}
                                 href={l.href}
@@ -96,7 +122,8 @@ export default function Missions() {
                 </div>
               </article>
             </li>
-          ))}
+            );
+          })}
         </ul>
       </div>
     </section>

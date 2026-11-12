@@ -186,21 +186,35 @@ export default function RiftStage({ channels }: Props) {
     const mq = matchMedia("(hover: hover) and (pointer: fine)");
     const el = cursorRef.current!;
     const root = document.documentElement;
-    const LINK = 'a[href], button, summary, [role="button"], label, [data-ch-link]';
+    const LINK = 'a[href], button:not(:disabled), [role="button"]';
     let x = 0;
     let y = 0;
     let raf = 0;
+    let rafScroll = 0;
+    let seen = false; // a real pointer has moved: only then is the position meaningful
     const draw = () => {
       raf = 0;
       el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
     };
     const move = (e: PointerEvent) => {
       if (e.pointerType === "touch") return;
+      seen = true;
       x = e.clientX;
       y = e.clientY;
       if (!raf) raf = requestAnimationFrame(draw);
       el.classList.add("is-on");
       el.classList.toggle("is-link", !!(e.target as Element | null)?.closest?.(LINK));
+    };
+    // A parked pointer doesn't move when the page scrolls under it, so re-read
+    // what is under it (once per frame), as the browser's own cursor does.
+    const rehit = () => {
+      rafScroll = 0;
+      if (!seen) return;
+      const t = document.elementFromPoint(x, y);
+      el.classList.toggle("is-link", !!t?.closest?.(LINK));
+    };
+    const scrolled = () => {
+      if (!rafScroll) rafScroll = requestAnimationFrame(rehit);
     };
     const down = () => el.classList.add("is-down");
     const up = () => el.classList.remove("is-down");
@@ -210,6 +224,7 @@ export default function RiftStage({ channels }: Props) {
     const on = () => {
       root.classList.add("has-cursor");
       document.addEventListener("pointermove", move, { passive: true });
+      window.addEventListener("scroll", scrolled, { passive: true });
       document.addEventListener("pointerdown", down);
       document.addEventListener("pointerup", up);
       document.addEventListener("mouseout", out);
@@ -218,6 +233,7 @@ export default function RiftStage({ channels }: Props) {
       root.classList.remove("has-cursor");
       el.classList.remove("is-on");
       document.removeEventListener("pointermove", move);
+      window.removeEventListener("scroll", scrolled);
       document.removeEventListener("pointerdown", down);
       document.removeEventListener("pointerup", up);
       document.removeEventListener("mouseout", out);
@@ -229,6 +245,7 @@ export default function RiftStage({ channels }: Props) {
       mq.removeEventListener("change", sync);
       off();
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(rafScroll);
     };
   }, []);
 
