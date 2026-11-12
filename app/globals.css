@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
-   PALETTE. Sampled from /reference (colour only), then locked here.
+   PALETTE. Locked: every colour on the site comes from this list.
    Dark ink ground, icy panels, pink/red loud, cyan + amber as rare sparks.
 --------------------------------------------------------------------------- */
 :root {
