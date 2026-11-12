@@ -5,7 +5,12 @@ const TILT = ["-rotate-1", "rotate-1", "-rotate-[0.6deg]"];
 
 export default function ShiftLog() {
   return (
-    <section id="shiftlog" data-scene="shiftlog" className="overflow-x-clip py-[clamp(110px,18vh,220px)]">
+    <section
+      id="shiftlog"
+      data-scene="shiftlog"
+      className="overflow-x-clip py-[clamp(110px,18vh,220px)]"
+      style={cssVars({ "--scene-accent": "var(--cyan)" })}
+    >
       <Float depth={0.8} className="right-[4%] top-[5%] rotate-6 max-md:hidden">
         <span className="sticker sticker--red micro">Rec</span>
       </Float>
@@ -30,11 +35,12 @@ export default function ShiftLog() {
                   />
                   <div className="grid gap-x-8 gap-y-4 sm:grid-cols-[150px_1fr]">
                     <div>
-                      <p className="sticker sticker--ink micro">{s.period}</p>
-                      <p className="micro mt-3 text-ink/75">{s.location}</p>
+                      {s.period ? <p className="sticker sticker--ink micro shift-period">{s.period}</p> : null}
+                      <p className={`micro text-ink/80 ${s.period ? "mt-3" : ""}`}>{s.location}</p>
                     </div>
-                    <div>
-                      <h3 className="display text-[clamp(2rem,4.4vw,3.1rem)]">{s.role}</h3>
+                    <div className="min-w-0">
+                      <p className="caption micro">{s.caption}</p>
+                      <h3 className="display mt-3 text-[clamp(2rem,4.4vw,3.1rem)] [overflow-wrap:anywhere]">{s.role}</h3>
                       <p className="mt-2 text-[1.125rem] font-bold">{s.org}</p>
                       <p className="mt-3 font-medium">{s.summary}</p>
                       <ul className="mt-4 grid gap-2 font-medium">

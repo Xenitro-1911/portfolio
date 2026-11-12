@@ -29,9 +29,11 @@ export default function Lobby() {
         <p className="rise mt-6 text-[clamp(1.15rem,2.4vw,1.6rem)] font-bold uppercase tracking-[0.02em]">
           <span className="bg-icy px-2 py-0.5 text-ink">{profile.role}</span>
         </p>
-        <p className="rise mt-3 max-w-[34ch] text-icy" style={cssVars({ "--i": 1 })}>
-          {profile.tagline}
-        </p>
+        {profile.tagline && profile.tagline !== profile.role ? (
+          <p className="rise mt-3 max-w-[34ch] text-icy" style={cssVars({ "--i": 1 })}>
+            {profile.tagline}
+          </p>
+        ) : null}
       </div>
 
       <div className="wrap rise relative flex items-end justify-between gap-6 pb-6" style={cssVars({ "--i": 2 })}>

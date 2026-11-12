@@ -31,7 +31,7 @@ export default function Exit() {
               </span>
             </header>
             <p className="mt-5 max-w-[40ch] text-[1.125rem] font-medium">{contact.pitch}</p>
-            <p className="micro mt-2 text-ink/75">{contact.availability}</p>
+            {contact.availability ? <p className="micro mt-2 text-ink/80">{contact.availability}</p> : null}
 
             <a href={`mailto:${contact.email}`} className="exit-btn mt-7">
               Email me
@@ -42,12 +42,18 @@ export default function Exit() {
             <ul className="mt-7 border-b-2 border-ink">
               {contact.links.map((l) => (
                 <li key={l.label}>
-                  <a href={l.href} className="text-link">
+                  <a href={l.href} className="text-link" target="_blank" rel="noopener noreferrer">
                     <span className="text-[1.125rem] font-bold">{l.label}</span>
                     <span className="micro">{l.handle}</span>
                   </a>
                 </li>
               ))}
+              <li>
+                <a href="/cv.pdf" className="text-link" download="Vaibhav-Bisht-CV.pdf">
+                  <span className="text-[1.125rem] font-bold">Download CV (PDF)</span>
+                  <span className="micro">1 page, A4</span>
+                </a>
+              </li>
             </ul>
           </div>
         </div>
@@ -55,7 +61,7 @@ export default function Exit() {
 
       <footer className="wrap relative mt-14 flex flex-wrap items-end justify-between gap-4 pb-6 text-silver">
         <p className="display text-[clamp(1.6rem,3vw,2.2rem)] text-icy">{profile.name}</p>
-        <p className="micro">End of tape. Placeholder build, real content pending.</p>
+        <p className="micro">End of tape. Thanks for watching.</p>
         <div className="barcode w-[132px] text-icy" aria-hidden="true" />
       </footer>
     </section>

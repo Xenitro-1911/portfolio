@@ -1,6 +1,7 @@
 /**
  * CV content. This is the only file that holds copy; sections read everything from here.
- * Anything marked TODO is a fact that has not been supplied yet. Do not guess it.
+ * Only supplied facts live here. An empty string or missing field is simply not rendered:
+ * never fill a gap with a guess.
  */
 
 export type SceneId = "lobby" | "profile" | "shiftlog" | "missions" | "loadout" | "exit";
@@ -32,7 +33,7 @@ export type Shift = {
   org: string;
   period: string;
   location: string;
-  /** Street-TV style one-liner. Not rendered by any component yet. */
+  /** Street-TV style one-liner, shown as the card's channel caption. */
   caption: string;
   summary: string;
   highlights: string[];
@@ -42,23 +43,26 @@ export type Mission = {
   id: string;
   title: string;
   kind: string;
-  year: string;
-  /** Street-TV style one-liner. Not rendered by any component yet. */
+  /** Optional: omitted when not supplied. */
+  year?: string;
+  /** Street-TV style one-liner, shown as the card's channel caption. */
   caption: string;
   blurb: string;
+  /** Only stacks that were supplied; an empty list hides the row. */
   stack: string[];
-  href: string;
+  /** Live URL. Omitted when there is none: the card then shows no link. */
+  href?: string;
+  /** A status chip shown in place of a link, e.g. "In development". */
+  status?: string;
   /** Which cover the tape case gets. Kept to the two loud accents on purpose. */
   cover: "pink" | "red";
 };
-
-export type GearLevel = 1 | 2 | 3 | 4 | 5;
 
 export type GearGroup = {
   id: string;
   slot: string;
   note: string;
-  items: { name: string; level: GearLevel }[];
+  items: string[];
 };
 
 export type Contact = {
@@ -80,8 +84,8 @@ export const channels: Channel[] = [
 export const profile: Profile = {
   name: "Vaibhav Bisht",
   nameLines: ["Vaibhav", "Bisht"],
-  role: "Software developer and restaurant operator",
-  tagline: "I build software for restaurants, and I run two of them.",
+  role: "Software development student + family-business operator",
+  tagline: "Software development student + family-business operator",
   location: "Tallinn, Estonia",
   summary: [
     "I am a second-year Software Development and Entrepreneurship student at Mainor University in Tallinn. I graduate in June 2028.",
@@ -99,11 +103,9 @@ export const profile: Profile = {
 export const shifts: Shift[] = [
   {
     id: "shift-1",
-    // TODO: confirm your formal job title.
     role: "Operations and software",
     org: "VaishnaviInvest OÜ (Buddha's Restaurant, Bella's Café & Grill)",
-    // TODO: start year (e.g. "20XX to now").
-    period: "TODO: start year to now",
+    period: "",
     location: "Paide and Kose, Estonia",
     caption: "NOW SHOWING: two kitchens, one team",
     summary:
@@ -120,14 +122,13 @@ export const shifts: Shift[] = [
     id: "shift-2",
     role: "Student, Software Development and Entrepreneurship",
     org: "Mainor University",
-    period: "TODO: start year to June 2028",
+    period: "2nd year, graduating June 2028",
     location: "Tallinn, Estonia",
     caption: "ON AIR: lectures by day, deploys by night",
     summary: "Second-year degree combining software development with running a business.",
     highlights: [
       "Submitted the Intermodal Trip Planner to the Bolt Graduate Programme.",
       "Built the University Learning Platform System in Java with Maven and JUnit 5.",
-      // TODO: add grades, honours or coursework highlights if you want them listed.
     ],
   },
 ];
@@ -137,23 +138,17 @@ export const missions: Mission[] = [
     id: "mission-1",
     title: "Buddha's Restaurant website",
     kind: "Website",
-    // TODO: year
-    year: "TODO",
     caption: "LIVE: two locations, one menu",
     blurb:
       "Rebuilt the restaurant's site for its Paide and Kose locations, with a gift-card promotion.",
-    // TODO: confirm stack.
-    stack: ["TODO: stack"],
-    // TODO: live URL.
-    href: "#missions",
+    stack: [],
+    status: "In development",
     cover: "pink",
   },
   {
     id: "mission-2",
     title: "bellascafeandgrill.ee",
     kind: "Website",
-    // TODO: year
-    year: "TODO",
     caption: "REBROADCAST: same café, new build",
     blurb: "Rebuilt the café's website from scratch.",
     stack: ["Next.js", "TypeScript", "Tailwind"],
@@ -164,26 +159,19 @@ export const missions: Mission[] = [
     id: "mission-3",
     title: "billing_pos",
     kind: "Full-stack POS",
-    // TODO: year
-    year: "TODO",
     caption: "TONIGHT'S FEATURE: the till that speaks Estonian tax",
     blurb:
       "Restaurant point-of-sale system with Estonian VAT and region support. Includes \"Kasa\", an Electron desktop prototype.",
     stack: ["FastAPI", "Next.js", "PostgreSQL", "Electron"],
-    // TODO: repository URL.
-    href: "#missions",
     cover: "pink",
   },
   {
     id: "mission-4",
     title: "Intermodal Trip Planner",
     kind: "Web app",
-    // TODO: year
-    year: "TODO",
     caption: "PREMIERE: door to door, any mode",
     blurb: "Trip planner built for the Bolt Graduate Programme. Live on Vercel.",
-    // TODO: confirm stack.
-    stack: ["TODO: stack"],
+    stack: [],
     href: "https://intermodal-trip-planner.vercel.app",
     cover: "red",
   },
@@ -191,75 +179,63 @@ export const missions: Mission[] = [
     id: "mission-5",
     title: "University Learning Platform System",
     kind: "Java system",
-    // TODO: year
-    year: "TODO",
     caption: "RERUN: class is in session",
     blurb: "Learning platform system written in Java and covered by JUnit 5 tests.",
     stack: ["Java", "Maven", "JUnit 5"],
-    // TODO: repository URL.
-    href: "#missions",
     cover: "pink",
   },
   {
     id: "mission-6",
     title: "Java LeetCode practice",
     kind: "Practice repos",
-    // TODO: year
-    year: "TODO",
     caption: "DAILY SEGMENT: one problem at a time",
     blurb: "Structured Java repositories of LeetCode solutions.",
-    stack: ["Java"],
-    // TODO: repository URL.
-    href: "#missions",
+    stack: [],
     cover: "red",
   },
 ];
 
-// TODO: the pip levels below are placeholders (all 3). Set each to your real level, 1 to 5.
+/** Skills grouped by what they are for. No self-ratings. */
 export const loadout: GearGroup[] = [
   {
-    id: "primary",
+    id: "languages",
     slot: "Languages",
     note: "What I write code in.",
-    items: [
-      { name: "Python", level: 3 },
-      { name: "TypeScript", level: 3 },
-      { name: "Java", level: 3 },
-    ],
+    items: ["Python", "TypeScript", "Java"],
   },
   {
-    id: "secondary",
-    slot: "Frameworks",
-    note: "What I build products with.",
-    items: [
-      { name: "Next.js", level: 3 },
-      { name: "React", level: 3 },
-      { name: "FastAPI", level: 3 },
-      { name: "Tailwind", level: 3 },
-      { name: "Electron", level: 3 },
-    ],
+    id: "web",
+    slot: "Web",
+    note: "Front ends and desktop shells.",
+    items: ["Next.js", "React", "Tailwind", "Electron"],
   },
   {
-    id: "support",
-    slot: "Data and tools",
-    note: "Storage and workflow.",
-    items: [
-      { name: "PostgreSQL", level: 3 },
-      { name: "Git / GitHub", level: 3 },
-    ],
+    id: "backend",
+    slot: "Backend and Data",
+    note: "APIs and storage.",
+    items: ["FastAPI", "PostgreSQL"],
+  },
+  {
+    id: "tools",
+    slot: "Tools",
+    note: "Build, test and ship.",
+    items: ["Git / GitHub", "Maven", "JUnit 5"],
   },
 ];
 
 export const contact: Contact = {
   email: "vaibhavbisht.1911@gmail.com",
-  // TODO: availability (e.g. internship from Month 20XX).
-  availability: "TODO: availability",
-  pitch: "Hiring for software, or want a restaurant's tech built properly? Write to me.",
+  availability: "Open to entry-level roles in Tallinn.",
+  pitch: "Open to entry-level roles. Email is the fastest way to reach me.",
   links: [
     { label: "GitHub", handle: "@Xenitro-1911", href: "https://github.com/Xenitro-1911" },
-    // TODO: LinkedIn handle and URL.
-    { label: "LinkedIn", handle: "TODO", href: "#exit" },
-    // TODO: add cv.pdf to /public and link it.
-    { label: "CV as PDF", handle: "cv.pdf", href: "#exit" },
+    {
+      label: "This portfolio",
+      handle: "vercel.app",
+      href: "https://portfolio-rose-beta-4jmpryazcn.vercel.app",
+    },
   ],
 };
+
+/** Public site URL, for metadata and the printed CV. */
+export const siteUrl = "https://portfolio-rose-beta-4jmpryazcn.vercel.app";
