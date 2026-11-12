@@ -1,6 +1,6 @@
 /**
- * CV content. Everything in here is a typed PLACEHOLDER: swap the values, keep the shapes.
- * No section reads copy from anywhere else, so this file is the only one to edit for real content.
+ * CV content. This is the only file that holds copy; sections read everything from here.
+ * Anything marked TODO is a fact that has not been supplied yet. Do not guess it.
  */
 
 export type SceneId = "lobby" | "profile" | "shiftlog" | "missions" | "loadout" | "exit";
@@ -32,6 +32,8 @@ export type Shift = {
   org: string;
   period: string;
   location: string;
+  /** Street-TV style one-liner. Not rendered by any component yet. */
+  caption: string;
   summary: string;
   highlights: string[];
 };
@@ -41,6 +43,8 @@ export type Mission = {
   title: string;
   kind: string;
   year: string;
+  /** Street-TV style one-liner. Not rendered by any component yet. */
+  caption: string;
   blurb: string;
   stack: string[];
   href: string;
@@ -74,60 +78,56 @@ export const channels: Channel[] = [
 ];
 
 export const profile: Profile = {
-  name: "Your Name",
-  nameLines: ["Your", "Name"],
-  role: "Role / Title goes here",
-  tagline: "One line on what you build and who it is for.",
-  location: "City, Country",
+  name: "Vaibhav Bisht",
+  nameLines: ["Vaibhav", "Bisht"],
+  role: "Software developer and restaurant operator",
+  tagline: "I build software for restaurants, and I run two of them.",
+  location: "Tallinn, Estonia",
   summary: [
-    "Placeholder paragraph one. Two or three sentences on what you do, the kind of problems you like, and the thing people come to you for.",
-    "Placeholder paragraph two. Where you have worked, what you are doing now, and what you want next.",
+    "I am a second-year Software Development and Entrepreneurship student at Mainor University in Tallinn. I graduate in June 2028.",
+    "Alongside my studies I help run Buddha's Restaurant and Bella's Café & Grill, two family restaurants in Paide and Kose. I write the software they need: websites, menus and a point-of-sale system.",
   ],
   facts: [
-    { label: "Based in", value: "City, Country" },
-    { label: "Focus", value: "Your main discipline" },
-    { label: "Experience", value: "0+ years" },
-    { label: "Status", value: "Open to offers" },
+    { label: "Based in", value: "Tallinn, Estonia" },
+    { label: "Studying", value: "Software Development and Entrepreneurship, Mainor University" },
+    { label: "Graduating", value: "June 2028" },
+    { label: "Languages", value: "English, Estonian (learning), Hindi" },
   ],
-  callout: "A short line in your own voice goes here.",
+  callout: "I know what a restaurant needs because I work in one.",
 };
 
 export const shifts: Shift[] = [
   {
     id: "shift-1",
-    role: "Most recent role",
-    org: "Company name",
-    period: "20XX to now",
-    location: "City / Remote",
-    summary: "Placeholder: one sentence on the team, the product and what you owned.",
+    // TODO: confirm your formal job title.
+    role: "Operations and software",
+    org: "VaishnaviInvest OÜ (Buddha's Restaurant, Bella's Café & Grill)",
+    // TODO: start year (e.g. "20XX to now").
+    period: "TODO: start year to now",
+    location: "Paide and Kose, Estonia",
+    caption: "NOW SHOWING: two kitchens, one team",
+    summary:
+      "I help run my family's two restaurants, covering operations, suppliers, staff scheduling and the tech behind them.",
     highlights: [
-      "Placeholder result with a number in it.",
-      "Placeholder thing you shipped and who used it.",
-      "Placeholder thing you fixed that stayed fixed.",
+      "Opened the new Kose location: supplier sourcing, fit-out and food-safety inspection prep.",
+      "Built a trilingual (English, Estonian, Russian) menu with 74+ items, allergen pages and QR codes.",
+      "Designed weekly lunch menus for social media and A4 print.",
+      "Built staff rosters that comply with Estonian labour law (TLS).",
+      "Evaluated POS systems, compared supplier prices and took over invoice handling.",
     ],
   },
   {
     id: "shift-2",
-    role: "Previous role",
-    org: "Company name",
-    period: "20XX to 20XX",
-    location: "City",
-    summary: "Placeholder: one sentence on the team, the product and what you owned.",
+    role: "Student, Software Development and Entrepreneurship",
+    org: "Mainor University",
+    period: "TODO: start year to June 2028",
+    location: "Tallinn, Estonia",
+    caption: "ON AIR: lectures by day, deploys by night",
+    summary: "Second-year degree combining software development with running a business.",
     highlights: [
-      "Placeholder result with a number in it.",
-      "Placeholder thing you shipped and who used it.",
-    ],
-  },
-  {
-    id: "shift-3",
-    role: "First role or degree",
-    org: "Company or school",
-    period: "20XX to 20XX",
-    location: "City",
-    summary: "Placeholder: one sentence on where you started and what it taught you.",
-    highlights: [
-      "Placeholder result with a number in it.",
-      "Placeholder thing you learned the hard way.",
+      "Submitted the Intermodal Trip Planner to the Bolt Graduate Programme.",
+      "Built the University Learning Platform System in Java with Maven and JUnit 5.",
+      // TODO: add grades, honours or coursework highlights if you want them listed.
     ],
   },
 ];
@@ -135,89 +135,131 @@ export const shifts: Shift[] = [
 export const missions: Mission[] = [
   {
     id: "mission-1",
-    title: "Project one",
-    kind: "Web app",
-    year: "20XX",
-    blurb: "Placeholder: what it is, who it is for, and the one thing it does well.",
-    stack: ["Tech A", "Tech B", "Tech C"],
+    title: "Buddha's Restaurant website",
+    kind: "Website",
+    // TODO: year
+    year: "TODO",
+    caption: "LIVE: two locations, one menu",
+    blurb:
+      "Rebuilt the restaurant's site for its Paide and Kose locations, with a gift-card promotion.",
+    // TODO: confirm stack.
+    stack: ["TODO: stack"],
+    // TODO: live URL.
     href: "#missions",
     cover: "pink",
   },
   {
     id: "mission-2",
-    title: "Project two",
-    kind: "Tooling",
-    year: "20XX",
-    blurb: "Placeholder: what it is, who it is for, and the one thing it does well.",
-    stack: ["Tech A", "Tech D"],
-    href: "#missions",
+    title: "bellascafeandgrill.ee",
+    kind: "Website",
+    // TODO: year
+    year: "TODO",
+    caption: "REBROADCAST: same café, new build",
+    blurb: "Rebuilt the café's website from scratch.",
+    stack: ["Next.js", "TypeScript", "Tailwind"],
+    href: "https://bellascafeandgrill.ee",
     cover: "red",
   },
   {
     id: "mission-3",
-    title: "Project three",
-    kind: "Experiment",
-    year: "20XX",
-    blurb: "Placeholder: what it is, who it is for, and the one thing it does well.",
-    stack: ["Tech B", "Tech E", "Tech F"],
-    href: "#missions",
-    cover: "red",
-  },
-  {
-    id: "mission-4",
-    title: "Project four",
-    kind: "Open source",
-    year: "20XX",
-    blurb: "Placeholder: what it is, who it is for, and the one thing it does well.",
-    stack: ["Tech C", "Tech G"],
+    title: "billing_pos",
+    kind: "Full-stack POS",
+    // TODO: year
+    year: "TODO",
+    caption: "TONIGHT'S FEATURE: the till that speaks Estonian tax",
+    blurb:
+      "Restaurant point-of-sale system with Estonian VAT and region support. Includes \"Kasa\", an Electron desktop prototype.",
+    stack: ["FastAPI", "Next.js", "PostgreSQL", "Electron"],
+    // TODO: repository URL.
     href: "#missions",
     cover: "pink",
   },
+  {
+    id: "mission-4",
+    title: "Intermodal Trip Planner",
+    kind: "Web app",
+    // TODO: year
+    year: "TODO",
+    caption: "PREMIERE: door to door, any mode",
+    blurb: "Trip planner built for the Bolt Graduate Programme. Live on Vercel.",
+    // TODO: confirm stack.
+    stack: ["TODO: stack"],
+    href: "https://intermodal-trip-planner.vercel.app",
+    cover: "red",
+  },
+  {
+    id: "mission-5",
+    title: "University Learning Platform System",
+    kind: "Java system",
+    // TODO: year
+    year: "TODO",
+    caption: "RERUN: class is in session",
+    blurb: "Learning platform system written in Java and covered by JUnit 5 tests.",
+    stack: ["Java", "Maven", "JUnit 5"],
+    // TODO: repository URL.
+    href: "#missions",
+    cover: "pink",
+  },
+  {
+    id: "mission-6",
+    title: "Java LeetCode practice",
+    kind: "Practice repos",
+    // TODO: year
+    year: "TODO",
+    caption: "DAILY SEGMENT: one problem at a time",
+    blurb: "Structured Java repositories of LeetCode solutions.",
+    stack: ["Java"],
+    // TODO: repository URL.
+    href: "#missions",
+    cover: "red",
+  },
 ];
 
+// TODO: the pip levels below are placeholders (all 3). Set each to your real level, 1 to 5.
 export const loadout: GearGroup[] = [
   {
     id: "primary",
-    slot: "Primary",
-    note: "What you reach for every day.",
+    slot: "Languages",
+    note: "What I write code in.",
     items: [
-      { name: "Skill A", level: 5 },
-      { name: "Skill B", level: 5 },
-      { name: "Skill C", level: 4 },
-      { name: "Skill D", level: 4 },
+      { name: "Python", level: 3 },
+      { name: "TypeScript", level: 3 },
+      { name: "Java", level: 3 },
     ],
   },
   {
     id: "secondary",
-    slot: "Secondary",
-    note: "Solid, used most weeks.",
+    slot: "Frameworks",
+    note: "What I build products with.",
     items: [
-      { name: "Skill E", level: 4 },
-      { name: "Skill F", level: 3 },
-      { name: "Skill G", level: 3 },
-      { name: "Skill H", level: 3 },
+      { name: "Next.js", level: 3 },
+      { name: "React", level: 3 },
+      { name: "FastAPI", level: 3 },
+      { name: "Tailwind", level: 3 },
+      { name: "Electron", level: 3 },
     ],
   },
   {
     id: "support",
-    slot: "Support",
-    note: "Tools and habits around the work.",
+    slot: "Data and tools",
+    note: "Storage and workflow.",
     items: [
-      { name: "Tool A", level: 4 },
-      { name: "Tool B", level: 3 },
-      { name: "Tool C", level: 2 },
-      { name: "Tool D", level: 2 },
+      { name: "PostgreSQL", level: 3 },
+      { name: "Git / GitHub", level: 3 },
     ],
   },
 ];
 
 export const contact: Contact = {
-  email: "you@example.com",
-  availability: "Placeholder: available from Month 20XX",
-  pitch: "Placeholder: one sentence on the work you want to hear about.",
+  email: "vaibhavbisht.1911@gmail.com",
+  // TODO: availability (e.g. internship from Month 20XX).
+  availability: "TODO: availability",
+  pitch: "Hiring for software, or want a restaurant's tech built properly? Write to me.",
   links: [
-    { label: "GitHub", handle: "@your-handle", href: "#exit" },
-    { label: "LinkedIn", handle: "/in/your-handle", href: "#exit" },
+    { label: "GitHub", handle: "@Xenitro-1911", href: "https://github.com/Xenitro-1911" },
+    // TODO: LinkedIn handle and URL.
+    { label: "LinkedIn", handle: "TODO", href: "#exit" },
+    // TODO: add cv.pdf to /public and link it.
     { label: "CV as PDF", handle: "cv.pdf", href: "#exit" },
   ],
 };

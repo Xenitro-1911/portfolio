@@ -221,9 +221,23 @@ main {
   align-items: flex-end;
   gap: 0.35em 0.6em;
 }
+@property --split {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 1px;
+}
+@property --hs {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 5px;
+}
 .scene-head .display {
   font-size: clamp(3.4rem, 10.5vw, 9rem);
-  text-shadow: 5px 5px 0 var(--head-shadow, var(--red));
+  /* light RGB split (cyan left, pink right) under the hard shadow */
+  text-shadow:
+    calc(var(--split) * -1) 0 0 var(--cyan),
+    var(--split) 0 0 var(--pink),
+    var(--hs) var(--hs) 0 var(--head-shadow, var(--red));
 }
 .float {
   position: absolute;
@@ -470,26 +484,32 @@ main {
 .stage > * {
   position: absolute;
 }
+.stage {
+  /* per-scene palette: interpolated by RiftStage, always built from the locked tokens */
+  --fx-ground: var(--ink);
+  --fx-dot-a: var(--royal);
+  --fx-dot-b: var(--peri);
+  --fx-accent: var(--pink);
+}
 .stage-tint {
   inset: 0;
-  background: var(--navy);
-  opacity: 0;
+  background: var(--fx-ground);
 }
 .stage-ht {
-  left: 0;
-  right: 0;
+  left: -10vw;
+  right: -10vw;
   height: 190vh;
 }
 .stage-ht--a {
   top: 30vh;
-  color: var(--royal);
+  color: var(--fx-dot-a);
   opacity: 0.5;
   --dot: 22px;
   mask-image: linear-gradient(115deg, transparent 38%, #000 100%);
 }
 .stage-ht--b {
   top: -10vh;
-  color: var(--peri);
+  color: var(--fx-dot-b);
   opacity: 0.16;
   --dot: 8px;
   mask-image: linear-gradient(290deg, transparent 45%, #000 100%);
@@ -793,9 +813,11 @@ html:not(.motion) .stage-tint {
    Scene bits
 --------------------------------------------------------------------------- */
 .lobby-name {
-  font-size: clamp(7rem, 24vw, 32svh);
+  font-size: clamp(4.8rem, 22vw, 32svh);
   transform-origin: 50% 100%;
-  text-shadow: 0.04em 0.04em 0 var(--pink);
+  text-shadow:
+    calc(var(--split) * -1) 0 0 var(--cyan),
+    0.04em 0.04em 0 var(--pink);
 }
 .head-ch {
   vertical-align: top;
@@ -807,4 +829,233 @@ html:not(.motion) .stage-tint {
   text-transform: uppercase;
   font-size: clamp(1.7rem, 3.4vw, 2.4rem);
   line-height: 1.02;
+}
+
+/* ---------------------------------------------------------------------------
+   ATMOSPHERE: speed lines, grain, tape labels, colour bars, HUD, cursor
+--------------------------------------------------------------------------- */
+
+/* speed-line burst: manga radial lines, opacity driven by scroll velocity */
+.fx-speed {
+  inset: -25%;
+  opacity: 0;
+  color: var(--icy);
+  background: repeating-conic-gradient(from 0deg at 50% 50%, currentColor 0 0.5deg, transparent 0.5deg 4.2deg);
+  mask-image: radial-gradient(circle at 50% 50%, transparent 34%, #000 86%);
+  will-change: opacity;
+}
+
+/* tape labels drifting behind the content, each at its own depth */
+.stage-tags {
+  inset: 0;
+}
+.stage-tags > * {
+  position: absolute;
+  top: 0;
+}
+/* the HUD owns the bottom edge; the lobby's last row sits above it */
+[data-scene="lobby"],
+[data-scene="exit"] {
+  padding-bottom: 48px;
+}
+.tag {
+  padding: 0.3em 0.9em 0.25em;
+  background: var(--tag-bg, var(--fx-accent));
+  color: var(--ink);
+  white-space: nowrap;
+  clip-path: polygon(0 10%, 3% 0, 6% 12%, 9% 0, 100% 0, 98% 40%, 100% 70%, 97% 100%, 0 100%, 2% 55%);
+}
+.tag--peri {
+  --tag-bg: var(--peri);
+}
+.tag--icy {
+  --tag-bg: var(--icy);
+}
+.tag--ink {
+  --tag-bg: var(--ink-2);
+  color: var(--icy);
+}
+
+/* CRT grain: a small noise tile jittered in hard steps (transform only) */
+.crt {
+  position: fixed;
+  inset: 0;
+  z-index: 44;
+  pointer-events: none;
+  overflow: hidden;
+  contain: strict;
+}
+.crt-grain {
+  position: absolute;
+  inset: -128px;
+  background-image: var(--noise);
+  background-size: 128px 128px;
+  opacity: 0.05;
+}
+.crt-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, transparent 62%, var(--ink) 130%);
+  opacity: 0.55;
+}
+
+/* colour-bar flash, inside the channel-change burst */
+.static-bars {
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      var(--icy) 0 14.28%,
+      var(--amber) 0 28.57%,
+      var(--cyan) 0 42.85%,
+      var(--peri) 0 57.14%,
+      var(--pink) 0 71.42%,
+      var(--red) 0 85.71%,
+      var(--royal) 0 100%
+    )
+    top / 100% 72% no-repeat,
+    linear-gradient(90deg, var(--royal) 0 25%, var(--icy) 0 50%, var(--navy) 0 75%, var(--ink) 0 100%) bottom / 100% 28% no-repeat;
+}
+
+/* HUD chrome */
+.hud {
+  --fx-accent: var(--pink);
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 46;
+  padding: 0 var(--gutter) 10px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+  color: var(--icy);
+}
+.hud-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hud-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.28em 0.55em 0.2em;
+  background: var(--ink);
+  border: 2px solid var(--icy);
+  box-shadow: 3px 3px 0 0 var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.hud-chip--accent {
+  background: var(--fx-accent);
+  color: var(--ink);
+  border-color: var(--ink);
+}
+.hud-rec {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--red);
+}
+.hud-tc {
+  min-width: 10.4ch;
+}
+@media (max-width: 520px) {
+  .hud {
+    padding-bottom: 8px;
+  }
+  .hud-chip {
+    padding: 0.22em 0.4em 0.16em;
+    font-size: 0.625rem;
+    letter-spacing: 0.04em;
+  }
+  .hud-tc {
+    min-width: 8.2ch;
+  }
+  .hud-frames {
+    display: none;
+  }
+}
+
+/* cursor: chunky arrow, hand on links. Fine pointers only. */
+.cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 70;
+  width: 46px;
+  height: 46px;
+  margin: -4px 0 0 -4px;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform;
+}
+.cursor svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform-origin: 4px 4px;
+  transition: transform 120ms var(--ease-out), opacity 90ms var(--ease-out);
+}
+.cursor .c-hand {
+  opacity: 0;
+  transform: scale(0.8);
+  transform-origin: 4px 4px;
+}
+.cursor.is-link .c-arrow {
+  opacity: 0;
+  transform: scale(0.8);
+}
+.cursor.is-link .c-hand {
+  opacity: 1;
+  transform: none;
+}
+.cursor.is-down .c-arrow {
+  transform: scale(0.88);
+}
+.cursor.is-down .c-hand {
+  transform: scale(0.88);
+}
+.cursor.is-on {
+  opacity: 1;
+}
+html.has-cursor,
+html.has-cursor * {
+  cursor: none !important;
+}
+
+/* motion-only atmosphere */
+@media (prefers-reduced-motion: no-preference) {
+  .crt-grain {
+    animation: grain 0.5s steps(1, end) infinite;
+  }
+  .hud-rec {
+    animation: rec 1.6s steps(1, end) infinite;
+  }
+}
+@keyframes grain {
+  0% { transform: translate3d(0, 0, 0); }
+  20% { transform: translate3d(-37px, 22px, 0); }
+  40% { transform: translate3d(29px, -51px, 0); }
+  60% { transform: translate3d(-64px, -18px, 0); }
+  80% { transform: translate3d(48px, 40px, 0); }
+}
+@keyframes rec {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
+}
+
+/* reduced motion / no script: keep the still dressing, drop everything that moves */
+html:not(.motion) .fx-speed,
+html:not(.motion) .stage-tags,
+html:not(.motion) .crt-grain {
+  display: none;
+}
+@media (max-width: 760px) {
+  .stage-tags .tag--far {
+    display: none;
+  }
 }

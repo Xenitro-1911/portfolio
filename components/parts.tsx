@@ -8,7 +8,7 @@ export function SceneHead({ channel, shadow }: { channel: Channel; shadow?: stri
   return (
     <header
       className="scene-head"
-      data-enter="rise"
+      data-enter="slam"
       style={shadow ? cssVars({ "--head-shadow": shadow }) : undefined}
     >
       <h2 className="display">
