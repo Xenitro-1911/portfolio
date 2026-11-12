@@ -374,14 +374,50 @@ main {
   border: var(--outline) solid var(--ink);
   transition: transform 220ms var(--ease-out);
 }
-.case:active .case-body {
+.case--link:active .case-body {
   transform: translate(4px, 4px);
 }
+.case--link:focus-visible .case-body {
+  transform: translate(-8px, -10px) rotate(-1.2deg);
+}
 @media (hover: hover) and (pointer: fine) {
-  .case:hover .case-body,
-  .case:focus-visible .case-body {
+  .case--link:hover .case-body {
     transform: translate(-8px, -10px) rotate(-1.2deg);
   }
+}
+/* the visible "link button" on cases that have a live site */
+.case-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.5em 0.8em 0.45em;
+  background: var(--ink);
+  color: var(--icy);
+  font-weight: 700;
+}
+.case-go svg {
+  transition: transform 200ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .case--link:hover .case-go svg {
+    transform: translateX(0.2em);
+  }
+}
+
+/* channel caption: a lower-third strip in the scene's accent, readable on any panel */
+.caption {
+  align-self: flex-start;
+  display: inline-block;
+  max-width: 100%;
+  padding: 0.32em 0.6em 0.26em;
+  background: var(--ink);
+  color: var(--scene-accent, var(--cyan));
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.shift-period {
+  white-space: normal;
+  max-width: 100%;
 }
 .case-spine {
   background: var(--ink);
@@ -438,30 +474,7 @@ main {
   border: 2px solid var(--peri);
   clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
 }
-.slot--max {
-  background: var(--icy);
-  color: var(--ink);
-  border-color: var(--icy);
-}
-.pips {
-  display: flex;
-  gap: 3px;
-  margin-top: 0.55rem;
-}
-.pips i {
-  width: 14px;
-  height: 6px;
-  background: currentColor;
-  opacity: 0.22;
-  transform: skewX(-20deg);
-}
-.pips i.on {
-  opacity: 1;
-  background: var(--pink);
-}
-.slot--max .pips i.on {
-  background: var(--red);
-}
+
 
 /* ---------------------------------------------------------------------------
    THE STAGE. Fixed, behind the content, owned by <RiftStage/>.
