@@ -1,0 +1,153 @@
+/* The printable CV: black on white, no effects. Scoped to .cv-page. */
+html:has(.cv-page) {
+  background: #fff;
+  color: #000;
+  color-scheme: light;
+  scrollbar-color: auto;
+}
+html:has(.cv-page) body {
+  background: #fff;
+}
+
+.cv-page {
+  padding: 24px 16px 64px;
+  color: #000;
+  font-family: var(--font-sans);
+  font-size: 10pt;
+  line-height: 1.4;
+}
+.cv-page a {
+  color: inherit;
+}
+.cv-bar {
+  max-width: 210mm;
+  margin: 0 auto 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-weight: 700;
+}
+.cv-sheet {
+  max-width: 210mm;
+  margin: 0 auto;
+  display: grid;
+  gap: 4.5mm;
+}
+.cv-head h1 {
+  font-size: 22pt;
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.cv-role {
+  font-size: 11.5pt;
+  font-weight: 700;
+  margin-top: 1mm;
+}
+.cv-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 4mm;
+  margin-top: 1.5mm;
+}
+@media screen {
+  /* comfortable tap targets on screen; print keeps the tight line */
+  .cv-contact a,
+  .cv-bar a {
+    display: inline-block;
+    min-height: 24px;
+    padding: 3px 0;
+  }
+}
+.cv-avail {
+  margin-top: 1mm;
+}
+.cv-sheet h2 {
+  font-size: 10pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1.2pt solid #000;
+  padding-bottom: 0.8mm;
+  margin-bottom: 1.8mm;
+}
+.cv-sheet section > p + p {
+  margin-top: 1.2mm;
+}
+.cv-sheet h3 {
+  font-size: 10pt;
+  font-weight: 700;
+}
+.cv-item + .cv-item {
+  margin-top: 2.5mm;
+}
+.cv-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 4mm;
+}
+.cv-meta,
+.cv-kind {
+  color: #333;
+}
+.cv-kind {
+  font-weight: 500;
+}
+.cv-list {
+  margin-top: 0.8mm;
+  padding-left: 4.5mm;
+  list-style: disc;
+}
+.cv-projects {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.2mm 6mm;
+}
+.cv-skills {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1mm 6mm;
+}
+.cv-skills div {
+  display: flex;
+  gap: 2mm;
+}
+.cv-skills dt {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.cv-skills dt::after {
+  content: ":";
+}
+
+@media (max-width: 600px) {
+  .cv-projects,
+  .cv-skills {
+    grid-template-columns: 1fr;
+  }
+}
+
+@page {
+  size: A4;
+  margin: 12mm 14mm;
+}
+@media print {
+  .cv-page {
+    padding: 0;
+    font-size: 9.2pt;
+  }
+  .cv-bar {
+    display: none;
+  }
+  .cv-sheet {
+    max-width: none;
+  }
+  .cv-page a {
+    text-decoration: none;
+  }
+  .cv-item,
+  .cv-project {
+    break-inside: avoid;
+  }
+}
