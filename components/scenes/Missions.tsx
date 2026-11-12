@@ -1,19 +1,8 @@
-import { Fragment, type ReactNode } from "react";
-import { channels, missions, type Mission } from "@/data/cv";
+import { Fragment } from "react";
+import { channels, missions } from "@/data/cv";
 import { ArrowRight, Float, SceneHead, cssVars } from "@/components/parts";
 
 const TILT = ["-rotate-2", "rotate-[1.5deg]", "-rotate-1", "rotate-2"];
-
-/** The shell: a real link when there is a URL, a plain case when there is not. */
-function Shell({ m, children }: { m: Mission; children: ReactNode }) {
-  return m.href ? (
-    <a href={m.href} className="case case--link h-full" target="_blank" rel="noopener noreferrer">
-      {children}
-    </a>
-  ) : (
-    <article className="case h-full">{children}</article>
-  );
-}
 
 export default function Missions() {
   return (
@@ -30,13 +19,13 @@ export default function Missions() {
       <div className="wrap relative">
         <SceneHead channel={channels[3]} shadow="var(--ink)" />
         <p className="mt-5 max-w-[60ch] text-[1.125rem] font-medium" data-enter="rise">
-          Six tapes off the shelf. Cases with a live site open it.
+          Six tapes off the shelf. Each button on a case opens the project.
         </p>
 
         <ul className="mt-14 grid gap-x-9 gap-y-12 sm:grid-cols-2 xl:grid-cols-3">
           {missions.map((m, i) => (
             <li key={m.id} className={TILT[i % TILT.length]} data-enter="tape">
-              <Shell m={m}>
+              <article className={`case h-full ${m.links?.length ? "case--link" : ""}`}>
                 <div className="case-body">
                   <div className="case-spine micro" aria-hidden="true">
                     <span>{m.title}</span>
@@ -75,21 +64,37 @@ export default function Missions() {
                           ))}
                         </ul>
                       )}
-                      <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-5">
-                        {m.href ? (
-                          <span className="case-go micro">
-                            Visit site <ArrowRight className="h-[0.9em] w-[1.2em]" />
-                            <span className="sr-only">(opens in a new tab)</span>
-                          </span>
+                      <div className="mt-auto pt-5">
+                        {m.links?.length ? (
+                          <div className="flex flex-wrap gap-2.5">
+                            {m.links.map((l) => (
+                              <a
+                                key={l.href}
+                                href={l.href}
+                                className="case-go micro"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {l.label}
+                                <ArrowRight className="h-[0.9em] w-[1.2em]" />
+                                <span className="sr-only">
+                                  , {m.title} (opens in a new tab)
+                                </span>
+                              </a>
+                            ))}
+                          </div>
                         ) : m.status ? (
                           <span className="sticker sticker--amber micro">{m.status}</span>
                         ) : null}
-                        <div className="barcode ml-auto w-[96px] text-ink" aria-hidden="true" />
+                        <div
+                          className={`barcode w-[96px] text-ink ${m.links?.length || m.status ? "mt-4" : ""}`}
+                          aria-hidden="true"
+                        />
                       </div>
                     </div>
                   </div>
                 </div>
-              </Shell>
+              </article>
             </li>
           ))}
         </ul>

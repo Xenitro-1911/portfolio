@@ -79,9 +79,14 @@ export default function CvPage() {
                 </h3>
                 <p>{m.blurb}</p>
                 {m.stack.length > 0 && <p className="cv-meta">{m.stack.join(", ")}</p>}
-                {m.href ? (
+                {m.links?.length ? (
                   <p className="cv-meta">
-                    <a href={m.href}>{strip(m.href)}</a>
+                    {m.links.map((l, n) => (
+                      <span key={l.href}>
+                        {n > 0 ? " · " : ""}
+                        <a href={l.href}>{strip(l.href)}</a>
+                      </span>
+                    ))}
                   </p>
                 ) : m.status ? (
                   <p className="cv-meta">{m.status}</p>
