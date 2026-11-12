@@ -50,8 +50,8 @@ export type Mission = {
   blurb: string;
   /** Only stacks that were supplied; an empty list hides the row. */
   stack: string[];
-  /** Live URL. Omitted when there is none: the card then shows no link. */
-  href?: string;
+  /** Link buttons shown on the card. Omitted when there are none: no button is rendered. */
+  links?: { label: string; href: string }[];
   /** A status chip shown in place of a link, e.g. "In development". */
   status?: string;
   /** Which cover the tape case gets. Kept to the two loud accents on purpose. */
@@ -97,7 +97,7 @@ export const profile: Profile = {
     { label: "Graduating", value: "June 2028" },
     { label: "Languages", value: "English, Estonian (learning), Hindi" },
   ],
-  callout: "I know what a restaurant needs because I work in one.",
+  callout: "I know what a restaurant needs because I manage one.",
 };
 
 export const shifts: Shift[] = [
@@ -142,7 +142,7 @@ export const missions: Mission[] = [
     blurb:
       "Rebuilt the restaurant's site for its Paide and Kose locations, with a gift-card promotion.",
     stack: [],
-    status: "In development",
+    links: [{ label: "Visit site", href: "https://www.buddhasrestaurant.ee/" }],
     cover: "pink",
   },
   {
@@ -152,7 +152,7 @@ export const missions: Mission[] = [
     caption: "REBROADCAST: same café, new build",
     blurb: "Rebuilt the café's website from scratch.",
     stack: ["Next.js", "TypeScript", "Tailwind"],
-    href: "https://bellascafeandgrill.ee",
+    links: [{ label: "Visit site", href: "https://bellascafeandgrill.ee" }],
     cover: "red",
   },
   {
@@ -163,6 +163,7 @@ export const missions: Mission[] = [
     blurb:
       "Restaurant point-of-sale system with Estonian VAT and region support. Includes \"Kasa\", an Electron desktop prototype.",
     stack: ["FastAPI", "Next.js", "PostgreSQL", "Electron"],
+    status: "In development",
     cover: "pink",
   },
   {
@@ -172,7 +173,7 @@ export const missions: Mission[] = [
     caption: "PREMIERE: door to door, any mode",
     blurb: "Trip planner built for the Bolt Graduate Programme. Live on Vercel.",
     stack: [],
-    href: "https://intermodal-trip-planner.vercel.app",
+    links: [{ label: "Visit site", href: "https://intermodal-trip-planner.vercel.app" }],
     cover: "red",
   },
   {
@@ -182,6 +183,12 @@ export const missions: Mission[] = [
     caption: "RERUN: class is in session",
     blurb: "Learning platform system written in Java and covered by JUnit 5 tests.",
     stack: ["Java", "Maven", "JUnit 5"],
+    links: [
+      {
+        label: "View repo",
+        href: "https://github.com/Xenitro-1911/University-Learning-Platform-System",
+      },
+    ],
     cover: "pink",
   },
   {
@@ -189,8 +196,13 @@ export const missions: Mission[] = [
     title: "Java LeetCode practice",
     kind: "Practice repos",
     caption: "DAILY SEGMENT: one problem at a time",
-    blurb: "Structured Java repositories of LeetCode solutions.",
+    blurb:
+      "35 Easy and 7 Medium LeetCode solutions in Java, each with clean code, complexity notes and unit tests.",
     stack: [],
+    links: [
+      { label: "Easy repo", href: "https://github.com/Xenitro-1911/leetcode-easy-java" },
+      { label: "Medium repo", href: "https://github.com/Xenitro-1911/leetcode-medium-java" },
+    ],
     cover: "red",
   },
 ];
@@ -229,6 +241,11 @@ export const contact: Contact = {
   pitch: "Open to entry-level roles. Email is the fastest way to reach me.",
   links: [
     { label: "GitHub", handle: "@Xenitro-1911", href: "https://github.com/Xenitro-1911" },
+    {
+      label: "LinkedIn",
+      handle: "vaibhav-bisht-est",
+      href: "https://www.linkedin.com/in/vaibhav-bisht-est",
+    },
     {
       label: "This portfolio",
       handle: "vercel.app",
