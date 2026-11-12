@@ -248,11 +248,11 @@ export const contact: Contact = {
     },
     {
       label: "This portfolio",
-      handle: "vercel.app",
-      href: "https://portfolio-rose-beta-4jmpryazcn.vercel.app",
+      handle: "vaibhavbisht.vercel.app",
+      href: "https://vaibhavbisht.vercel.app",
     },
   ],
 };
 
 /** Public site URL, for metadata and the printed CV. */
-export const siteUrl = "https://portfolio-rose-beta-4jmpryazcn.vercel.app";
+export const siteUrl = "https://vaibhavbisht.vercel.app";

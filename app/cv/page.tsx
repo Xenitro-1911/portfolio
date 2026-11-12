@@ -6,6 +6,7 @@ import "./cv.css";
 export const metadata: Metadata = {
   title: `CV: ${profile.name}`,
   description: `${profile.name}, ${profile.role}. One-page CV.`,
+  alternates: { canonical: "/cv" },
 };
 
 const strip = (url: string) => url.replace(/^https?:\/\//, "").replace(/\/$/, "");
