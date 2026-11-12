@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Anton, Barlow, Space_Mono, Zen_Kaku_Gothic_New } from "next/font/google";
-import { profile } from "@/data/cv";
+import { profile, siteUrl } from "@/data/cv";
 import "./globals.css";
 
 const display = Anton({
@@ -30,9 +30,21 @@ const jp = Zen_Kaku_Gothic_New({
   preload: false,
 });
 
+const title = `${profile.name}: ${profile.role}`;
+const description = `${profile.name}. ${profile.role}, based in ${profile.location}.`;
+
 export const metadata: Metadata = {
-  title: `${profile.name}: ${profile.role}`,
-  description: profile.tagline,
+  metadataBase: new URL(siteUrl),
+  title,
+  description,
+  openGraph: {
+    type: "website",
+    url: "/",
+    title,
+    description,
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: `${profile.name}, channel 01` }],
+  },
+  twitter: { card: "summary_large_image", title, description, images: ["/og.png"] },
 };
 
 export const viewport: Viewport = {
