@@ -627,7 +627,7 @@ export default function RiftStage({ channels }: Props) {
 
           /* per-scene palette, kept off the paint path: the ground is a flat navy
              layer whose opacity scrubs; only the small accent chips (HUD, tape
-             labels) take an interpolated colour from the locked tokens. */
+             labels) switch accent at the midpoint of each change, staying on locked tokens. */
           const css = getComputedStyle(root);
           const ACCENT = ["pink", "pink", "cyan", "amber", "cyan", "pink"].map((n) =>
             css.getPropertyValue(`--${n}`).trim(),
@@ -636,7 +636,8 @@ export default function RiftStage({ channels }: Props) {
           const pal = { t: 0 };
           let shown = "";
           const applyPal = () => {
-            const v = gsap.utils.interpolate(ACCENT, pal.t / (ACCENT.length - 1)) as string;
+            // step, don't blend: a mix of two tokens would leave the locked palette
+            const v = ACCENT[Math.min(ACCENT.length - 1, Math.round(pal.t))];
             if (v === shown) return;
             shown = v;
             st.style.setProperty("--fx-accent", v);
