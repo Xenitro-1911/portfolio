@@ -226,18 +226,29 @@ main {
   inherits: false;
   initial-value: 1px;
 }
-@property --hs {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 5px;
-}
 .scene-head .display {
+  position: relative;
   font-size: clamp(3.4rem, 10.5vw, 9rem);
-  /* light RGB split (cyan left, pink right) under the hard shadow */
+  /* light RGB split (cyan left, pink right), painted once */
   text-shadow:
     calc(var(--split) * -1) 0 0 var(--cyan),
-    var(--split) 0 0 var(--pink),
-    var(--hs) var(--hs) 0 var(--head-shadow, var(--red));
+    var(--split) 0 0 var(--pink);
+}
+/* the hard shadow is a copy of the title behind it, so the slam moves it with
+   transform only (no text-shadow repaint) */
+.scene-head .display::before {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  color: var(--head-shadow, var(--red));
+  text-shadow: none;
+  transform: translate3d(5px, 5px, 0);
+  transition: transform 340ms var(--ease-out);
+  pointer-events: none;
+}
+.pre-slam .display::before {
+  transform: none;
 }
 .float {
   position: absolute;
@@ -498,15 +509,13 @@ main {
   position: absolute;
 }
 .stage {
-  /* per-scene palette: interpolated by RiftStage, always built from the locked tokens */
-  --fx-ground: var(--ink);
-  --fx-dot-a: var(--royal);
-  --fx-dot-b: var(--peri);
+  /* accent interpolated by RiftStage between locked tokens, per scene */
   --fx-accent: var(--pink);
 }
 .stage-tint {
   inset: 0;
-  background: var(--fx-ground);
+  background: var(--navy);
+  opacity: 0;
 }
 .stage-ht {
   left: -10vw;
@@ -515,14 +524,14 @@ main {
 }
 .stage-ht--a {
   top: 30vh;
-  color: var(--fx-dot-a);
+  color: var(--royal);
   opacity: 0.5;
   --dot: 22px;
   mask-image: linear-gradient(115deg, transparent 38%, #000 100%);
 }
 .stage-ht--b {
   top: -10vh;
-  color: var(--fx-dot-b);
+  color: var(--peri);
   opacity: 0.16;
   --dot: 8px;
   mask-image: linear-gradient(290deg, transparent 45%, #000 100%);
@@ -704,12 +713,6 @@ main {
     animation: rise 700ms var(--ease-out) both;
     animation-delay: calc(900ms + var(--i, 0) * 80ms);
   }
-  .rift-glitch--a {
-    animation: glitch-a 4.6s steps(1, end) 1.4s infinite;
-  }
-  .rift-glitch--b {
-    animation: glitch-b 4.6s steps(1, end) 1.4s infinite;
-  }
   .cue svg {
     animation: cue 0.75s var(--ease-in-out) 1.6s 6 alternate;
   }
@@ -747,52 +750,6 @@ main {
   to {
     opacity: 1;
     transform: none;
-  }
-}
-@keyframes glitch-a {
-  0%,
-  100% {
-    opacity: 0;
-    transform: none;
-  }
-  2% {
-    opacity: 0.9;
-    transform: translateX(-5%);
-  }
-  4% {
-    opacity: 0.9;
-    transform: translateX(3%);
-  }
-  6% {
-    opacity: 0;
-  }
-  52% {
-    opacity: 0.8;
-    transform: translateX(4%);
-  }
-  54% {
-    opacity: 0;
-  }
-}
-@keyframes glitch-b {
-  0%,
-  100% {
-    opacity: 0;
-    transform: none;
-  }
-  3% {
-    opacity: 0.9;
-    transform: translateX(6%);
-  }
-  5% {
-    opacity: 0;
-  }
-  53% {
-    opacity: 0.8;
-    transform: translateX(-4%);
-  }
-  55% {
-    opacity: 0;
   }
 }
 @keyframes cue {
@@ -1071,4 +1028,30 @@ html:not(.motion) .crt-grain {
   .stage-tags .tag--far {
     display: none;
   }
+}
+
+/* PAUSE FX toggle and what it stops */
+.hud-btn {
+  pointer-events: auto;
+  color: var(--icy);
+  font: inherit;
+  text-transform: uppercase;
+  letter-spacing: inherit;
+  transition: transform 140ms var(--ease-out);
+}
+.hud-btn:active {
+  transform: scale(0.96);
+}
+.hud-btn[aria-pressed="true"] {
+  background: var(--icy);
+  color: var(--ink);
+  border-color: var(--ink);
+}
+.fx-paused .crt-grain,
+.fx-paused .hud-rec,
+.fx-paused .cue svg {
+  animation: none;
+}
+.fx-paused .fx-speed {
+  display: none;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
@@ -72,12 +72,32 @@ const HAND =
 
 type Props = { channels: Channel[] };
 
+const readPause = () => document.documentElement.classList.contains("fx-paused");
+const subscribePause = (cb: () => void) => {
+  const mo = new MutationObserver(cb);
+  mo.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  return () => mo.disconnect();
+};
+
 export default function RiftStage({ channels }: Props) {
   const stage = useRef<HTMLDivElement>(null);
   const staticRef = useRef<HTMLDivElement>(null);
   const crtRef = useRef<HTMLDivElement>(null);
   const hudRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
+  /* ---- PAUSE FX: stops every looping effect. The html class is set before
+         first paint by the layout script (stored choice, else reduced motion)
+         and is the single source of truth. ---------------------------------- */
+  const paused = useSyncExternalStore(subscribePause, readPause, () => false);
+  const togglePause = () => {
+    const next = !paused;
+    document.documentElement.classList.toggle("fx-paused", next);
+    try {
+      localStorage.setItem("fx-paused", next ? "1" : "0");
+    } catch {
+      /* private mode or blocked storage: the toggle still works for this visit */
+    }
+  };
 
   /* ---- HUD chrome: channel n/6, fake timecode, scroll percent.
          Runs in every mode; it reads the page, it does not move it. ------ */
@@ -109,11 +129,14 @@ export default function RiftStage({ channels }: Props) {
       const ch = pad(idx + 1);
       const sec = Math.floor((now - t0) / 1000);
       const tc = `${pad(Math.floor(sec / 3600))}:${pad(Math.floor(sec / 60) % 60)}:${pad(sec % 60)}`;
-      const ff = reduce ? ":00" : `:${pad(Math.floor(((now - t0) % 1000) / (1000 / 30)))}`;
+      const still = reduce || document.documentElement.classList.contains("fx-paused");
+      const ff = still ? ":00" : `:${pad(Math.floor(((now - t0) % 1000) / (1000 / 30)))}`;
       if (ch !== last.ch) {
         // keep the deck's "now playing" in step even when the motion layer is off
         const i = idx;
-        document.querySelectorAll<HTMLElement>("[data-ch-link]").forEach((l, n) => l.setAttribute("aria-current", n === i ? "true" : "false"));
+        document
+          .querySelectorAll<HTMLElement>("[data-ch-link]")
+          .forEach((l, n) => l.setAttribute("aria-current", n === i ? "true" : "false"));
         document.querySelector("[data-now-num]")?.replaceChildren(ch);
         const title = document.querySelector("[data-now-name]");
         if (title) title.textContent = channels[i].title;
@@ -240,14 +263,11 @@ export default function RiftStage({ channels }: Props) {
 
     // One burst, 260ms end to end, mid-grey noise at partial opacity: a channel
     // flick, not a strobe.
-    const heads = gsap.utils.toArray<HTMLElement>(".scene-head h2, .lobby-name");
-    const split = { burst: 0 };
     const burst = gsap
       .timeline({ paused: true })
       // colour-bar flash: one hard frame (~90ms) at partial opacity
       .set(colorBars, { opacity: 0.5 }, 0)
       .set(colorBars, { opacity: 0 }, 0.09)
-      .fromTo(split, { burst: 3.5 }, { burst: 0, duration: 0.26, ease: "power2.out" }, 0)
       .set(noise, { opacity: 0.5, x: 0, y: 0 }, 0)
       .to(noise, { x: 90, y: -70, duration: 0.2, ease: "steps(5)" }, 0)
       .set(bars[0], { opacity: 0.85, yPercent: 0, y: "12vh" }, 0)
@@ -290,9 +310,9 @@ export default function RiftStage({ channels }: Props) {
       k: parseFloat(el.dataset.speed || "0.3"),
     }));
     let speedNow = 0;
-    let splitNow = -1;
+    const isPaused = () => root.classList.contains("fx-paused");
     const layers = () => {
-      const v = Math.abs(lenis.velocity);
+      const v = isPaused() ? 0 : Math.abs(lenis.velocity);
       // subtle: lines appear past a brisk scroll and never exceed 20% opacity
       const target = v > 24 ? Math.min(0.2, ((v - 24) / 70) * 0.2) : 0;
       const rounded = Math.round(target * 50) / 50;
@@ -301,18 +321,32 @@ export default function RiftStage({ channels }: Props) {
         speedNow = rounded;
         speedTo(rounded);
       }
-      // light RGB split on headlines, spiking on a channel change or a fling
-      const q = Math.round((1 + Math.max(split.burst, Math.min(2, v / 40))) * 2) / 2;
-      if (q !== splitNow) {
-        splitNow = q;
-        heads.forEach((h) => h.style.setProperty("--split", `${q}px`));
-      }
+      if (isPaused()) return; // tape labels hold still while FX are paused
       // tape labels: wrap around the screen at their own rates
       const H = innerHeight + 240;
       const sy = window.scrollY;
       tagFx.forEach((t) => t.y(((((t.base * innerHeight - sy * t.k + 120) % H) + H) % H) - 120));
     };
     gsap.ticker.add(layers);
+
+    /* ---- ring glitch: one short burst roughly every 6s ------------------ */
+    const gA = $<SVGGElement>(".rift-glitch--a", st);
+    const gB = $<SVGGElement>(".rift-glitch--b", st);
+    const glitch = gsap
+      .timeline({ paused: true })
+      .set(gA, { opacity: 0.9, x: -11 }, 0)
+      .set(gB, { opacity: 0.9, x: 13 }, 0.03)
+      .set(gA, { x: 7 }, 0.06)
+      .set([gA, gB], { opacity: 0, x: 0 }, 0.12);
+    let glitchTimer = 0;
+    const scheduleGlitch = () => {
+      glitchTimer = window.setTimeout(() => {
+        // skip if paused, hidden, or a channel burst just flashed (keeps flashes well under 3/s)
+        if (!isPaused() && !document.hidden && performance.now() - lastBurst > 1000) glitch.restart();
+        scheduleGlitch();
+      }, 5200 + Math.random() * 1600);
+    };
+    scheduleGlitch();
 
     /* ---- content entrances: fire once, never rebuilt ------------------- */
     const FROM: Record<string, gsap.TweenVars> = {
@@ -339,17 +373,13 @@ export default function RiftStage({ channels }: Props) {
           .filter((el) => el.getBoundingClientRect().top > innerHeight * 0.9);
         if (!els.length) return;
         gsap.set(els, FROM[kind]);
-        if (kind === "slam") gsap.set(els.map((e) => e.querySelector("h2")), { "--hs": "0px" });
+        if (kind === "slam") els.forEach((e) => e.classList.add("pre-slam"));
         ScrollTrigger.batch(els, {
           start: "top 88%",
           once: true,
           onEnter: (batch) => {
-            // the hard shadow snaps out from behind the heading as it lands
-            if (kind === "slam")
-              gsap.to(
-                batch.map((e) => e.querySelector("h2")),
-                { "--hs": "5px", duration: 0.34, ease: "expo.out", stagger: 0.07 },
-              );
+            // the hard shadow (a transformed pseudo-element) slides out as it lands
+            if (kind === "slam") batch.forEach((e) => e.classList.remove("pre-slam"));
             gsap.to(batch, {
               x: 0,
               y: 0,
@@ -386,6 +416,7 @@ export default function RiftStage({ channels }: Props) {
     const arrow = $<HTMLElement>(".arrow", st);
     const wipe = $<HTMLElement>(".stage-wipe", st);
     const hud = hudRef.current!;
+    const tint = $<HTMLElement>(".stage-tint", st);
     const htA = $<HTMLElement>(".stage-ht--a", st);
     const htB = $<HTMLElement>(".stage-ht--b", st);
     const speed = $<HTMLElement>(".stage-speed", st);
@@ -554,38 +585,33 @@ export default function RiftStage({ channels }: Props) {
           );
         });
 
-        /* per-scene palette: ground, halftone and accent interpolate between the
-           locked tokens as each scene arrives (custom properties on the stage + HUD) */
+        /* per-scene palette, kept off the paint path: the ground is a flat navy
+           layer whose opacity scrubs; only the small accent chips (HUD, tape
+           labels) take an interpolated colour from the locked tokens. */
         const css = getComputedStyle(root);
-        const tok = (n: string) => css.getPropertyValue(`--${n}`).trim();
-        const PAL = [
-          ["ink", "royal", "peri", "pink"],
-          ["navy", "royal", "peri", "pink"],
-          ["navy", "royal", "cyan", "cyan"],
-          ["navy", "navy", "peri", "amber"],
-          ["ink-2", "royal", "peri", "cyan"],
-          ["ink", "navy", "pink", "pink"],
-        ].map((row) => row.map(tok));
-        const KEYS = ["--fx-ground", "--fx-dot-a", "--fx-dot-b", "--fx-accent"];
-        const shown: string[] = [];
+        const ACCENT = ["pink", "pink", "cyan", "amber", "cyan", "pink"].map((n) =>
+          css.getPropertyValue(`--${n}`).trim(),
+        );
+        const GROUND = [0, 0.7, 1, 1, 0.3, 0];
         const pal = { t: 0 };
+        let shown = "";
         const applyPal = () => {
-          KEYS.forEach((k, j) => {
-            const v = gsap.utils.interpolate(
-              PAL.map((r) => r[j]),
-              pal.t / (PAL.length - 1),
-            ) as string;
-            if (v === shown[j]) return;
-            shown[j] = v;
-            st.style.setProperty(k, v);
-            hud.style.setProperty(k, v);
-          });
+          const v = gsap.utils.interpolate(ACCENT, pal.t / (ACCENT.length - 1)) as string;
+          if (v === shown) return;
+          shown = v;
+          st.style.setProperty("--fx-accent", v);
+          hud.style.setProperty("--fx-accent", v);
         };
         [P, S, M, L, X].forEach((sp, n) => {
           tl.fromTo(
             pal,
             { t: n },
             { t: n + 1, duration: sp.d, ease: "none", immediateRender: false, onUpdate: applyPal },
+            sp.a,
+          ).fromTo(
+            tint,
+            { opacity: GROUND[n] },
+            { opacity: GROUND[n + 1], duration: sp.d, ease: "none", immediateRender: false },
             sp.a,
           );
         });
@@ -620,6 +646,8 @@ export default function RiftStage({ channels }: Props) {
     return () => {
       window.removeEventListener("resize", onResize);
       clearTimeout(timer);
+      clearTimeout(glitchTimer);
+      glitch.kill();
       burst.kill();
       master?.revert();
       entrances.revert();
@@ -752,8 +780,8 @@ export default function RiftStage({ channels }: Props) {
       </div>
       <div className="scanlines" aria-hidden="true" />
 
-      <div ref={hudRef} className="hud micro" aria-hidden="true">
-        <div className="hud-group">
+      <div ref={hudRef} className="hud micro">
+        <div className="hud-group" aria-hidden="true">
           <span className="hud-chip">
             <i className="hud-rec" />
             REC
@@ -766,13 +794,21 @@ export default function RiftStage({ channels }: Props) {
           </span>
         </div>
         <div className="hud-group">
-          <span className="hud-chip hud-chip--accent">
+          <button
+            type="button"
+            className="hud-chip hud-btn"
+            aria-pressed={paused}
+            onClick={togglePause}
+          >
+            Pause FX
+          </button>
+          <span className="hud-chip hud-chip--accent" aria-hidden="true">
             <span>CH</span>
             <span>
               <b data-hud="ch">01</b>/{String(channels.length).padStart(2, "0")}
             </span>
           </span>
-          <span className="hud-chip">
+          <span className="hud-chip" aria-hidden="true">
             <b data-hud="pct">000</b>%
           </span>
         </div>

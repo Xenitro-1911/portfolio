@@ -11,7 +11,7 @@ export function SceneHead({ channel, shadow }: { channel: Channel; shadow?: stri
       data-enter="slam"
       style={shadow ? cssVars({ "--head-shadow": shadow }) : undefined}
     >
-      <h2 className="display">
+      <h2 className="display" data-text={channel.title}>
         {channel.title}
         <span className="sticker sticker--pink micro head-ch">CH.{channel.ch}</span>
       </h2>

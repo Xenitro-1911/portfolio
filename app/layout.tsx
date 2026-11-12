@@ -42,7 +42,8 @@ export const viewport: Viewport = {
 
 // Runs before first paint. `motion` is what turns the fixed stage on; without it
 // (reduced motion, or script never running) the page is the static layout.
-const motionGate = `try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('motion')}catch(e){}`;
+// `fx-paused` (the HUD's PAUSE FX) comes from the stored choice, else defaults on for reduced motion.
+const motionGate = `try{var d=document.documentElement,r=matchMedia('(prefers-reduced-motion: reduce)').matches,p=null;if(!r)d.classList.add('motion');try{p=localStorage.getItem('fx-paused')}catch(e){}if(p==='1'||(p===null&&r))d.classList.add('fx-paused')}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
