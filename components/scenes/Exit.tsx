@@ -1,4 +1,5 @@
 import { channels, contact, profile } from "@/data/cv";
+import CopyEmail from "@/components/CopyEmail";
 import { ArrowRight, Float, cssVars } from "@/components/parts";
 
 export default function Exit() {
@@ -33,11 +34,24 @@ export default function Exit() {
             <p className="mt-5 max-w-[40ch] text-[1.125rem] font-medium">{contact.pitch}</p>
             {contact.availability ? <p className="micro mt-2 text-ink/80">{contact.availability}</p> : null}
 
-            <a href={`mailto:${contact.email}`} className="exit-btn mt-7">
-              Email me
-              <ArrowRight />
-            </a>
-            <p className="mt-3 break-all font-bold">{contact.email}</p>
+            <div className="exit-actions">
+              <a
+                href={`https://mail.google.com/mail/?view=cm&fs=1&to=${contact.email}&su=Hello%20Vaibhav`}
+                className="exit-btn"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Email me
+                <ArrowRight />
+              </a>
+              <CopyEmail email={contact.email} />
+            </div>
+            <p className="mt-4 break-all font-bold">{contact.email}</p>
+            <p className="micro mt-1">
+              <a href={`mailto:${contact.email}`} className="underline underline-offset-2">
+                Open in mail app
+              </a>
+            </p>
 
             <ul className="mt-7 border-b-2 border-ink">
               {contact.links.map((l) => (

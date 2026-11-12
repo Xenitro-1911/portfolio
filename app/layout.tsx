@@ -39,9 +39,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title,
   description,
+  alternates: { canonical: siteUrl },
   openGraph: {
     type: "website",
-    url: "/",
+    url: siteUrl,
     title,
     description,
     images: [{ url: "/og.png", width: 1200, height: 630, alt: `${profile.name}, channel 01` }],
@@ -57,7 +58,7 @@ export const viewport: Viewport = {
 // Runs before first paint. `motion` is what turns the fixed stage on; without it
 // (reduced motion, or script never running) the page is the static layout.
 // `fx-paused` (the HUD's PAUSE FX) comes from the stored choice, else defaults on for reduced motion.
-const motionGate = `try{var d=document.documentElement,r=matchMedia('(prefers-reduced-motion: reduce)').matches,p=null;if(!r)d.classList.add('motion');try{p=localStorage.getItem('fx-paused')}catch(e){}if(p==='1'||(p===null&&r))d.classList.add('fx-paused')}catch(e){}`;
+const motionGate = `try{var d=document.documentElement,r=matchMedia('(prefers-reduced-motion: reduce)').matches,p=null;if(!r)d.classList.add('motion');try{p=localStorage.getItem('fx-paused')}catch(e){}var o=p==='1'||(p===null&&r);if(o)d.classList.add('fx-paused');d.setAttribute('data-fx',o?'off':'on')}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -388,13 +388,37 @@ main {
 .case--link:active .case-body {
   transform: translate(4px, 4px);
 }
-.case--link:focus-visible .case-body {
+.case:has(.case-link:focus-visible) .case-body {
   transform: translate(-8px, -10px) rotate(-1.2deg);
 }
 @media (hover: hover) and (pointer: fine) {
-  .case--link:hover .case-body {
+  /* every case pops on hover, linked or not (only linked ones get the hand cursor) */
+  .case:hover .case-body {
     transform: translate(-8px, -10px) rotate(-1.2deg);
   }
+  .case--link:active:hover .case-body {
+    transform: translate(4px, 4px);
+  }
+}
+/* stretched link: the title's anchor owns the whole card. The ::after sits in
+   .case-body (the nearest positioned box), so it pops with the card. */
+.case-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+.case-link::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--outline) * -1);
+  z-index: 1;
+}
+.case-link:focus-visible {
+  outline: none;
+}
+.case-link:focus-visible::after {
+  outline: 3px solid var(--cyan);
+  outline-offset: 5px;
 }
 /* the visible "link button" on cases that have a live site */
 .case-go {
@@ -1055,16 +1079,40 @@ html:not(.motion) .crt-grain {
 .hud-btn:active {
   transform: scale(0.96);
 }
-.hud-btn[aria-pressed="true"] {
+.hud-btn[aria-pressed="false"] {
   background: var(--icy);
   color: var(--ink);
   border-color: var(--ink);
 }
-.fx-paused .crt-grain,
-.fx-paused .hud-rec,
-.fx-paused .cue svg {
+/* FX OFF: every looping effect holds still (grain, REC dot, cue bounce; the
+   ring glitch, timecode frames, tape labels and speed lines are gated in JS) */
+html[data-fx="off"] .crt-grain,
+html[data-fx="off"] .hud-rec,
+html[data-fx="off"] .cue svg,
+html[data-fx="off"] .cue {
   animation: none;
 }
-.fx-paused .fx-speed {
+html[data-fx="off"] .fx-speed,
+html[data-fx="off"] .stage-tags {
   display: none;
+}
+html[data-fx="off"] .rift-glitch--a,
+html[data-fx="off"] .rift-glitch--b {
+  opacity: 0 !important;
+}
+
+/* copy-email feedback and the secondary mail link */
+.exit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem 1rem;
+  margin-top: 1.75rem;
+}
+.exit-btn--alt {
+  background: var(--icy);
+  font-size: clamp(1.9rem, 5vw, 3rem);
+  cursor: pointer;
+}
+.exit-btn--alt[data-copied="true"] {
+  background: var(--cyan);
 }
