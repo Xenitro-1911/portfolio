@@ -93,6 +93,7 @@ export default function RiftStage({ channels }: Props) {
   const togglePause = () => {
     const next = !paused;
     document.documentElement.classList.toggle("fx-paused", next);
+    document.documentElement.setAttribute("data-fx", next ? "off" : "on");
     try {
       localStorage.setItem("fx-paused", next ? "1" : "0");
     } catch {
@@ -839,10 +840,11 @@ export default function RiftStage({ channels }: Props) {
           <button
             type="button"
             className="hud-chip hud-btn"
-            aria-pressed={paused}
+            aria-pressed={!paused}
+            aria-label="Visual effects"
             onClick={togglePause}
           >
-            Pause FX
+            FX {paused ? "OFF" : "ON"}
           </button>
           <span className="hud-chip hud-chip--accent" aria-hidden="true">
             <span>CH</span>

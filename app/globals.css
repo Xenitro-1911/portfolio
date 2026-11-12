@@ -1055,16 +1055,40 @@ html:not(.motion) .crt-grain {
 .hud-btn:active {
   transform: scale(0.96);
 }
-.hud-btn[aria-pressed="true"] {
+.hud-btn[aria-pressed="false"] {
   background: var(--icy);
   color: var(--ink);
   border-color: var(--ink);
 }
-.fx-paused .crt-grain,
-.fx-paused .hud-rec,
-.fx-paused .cue svg {
+/* FX OFF: every looping effect holds still (grain, REC dot, cue bounce; the
+   ring glitch, timecode frames, tape labels and speed lines are gated in JS) */
+html[data-fx="off"] .crt-grain,
+html[data-fx="off"] .hud-rec,
+html[data-fx="off"] .cue svg,
+html[data-fx="off"] .cue {
   animation: none;
 }
-.fx-paused .fx-speed {
+html[data-fx="off"] .fx-speed,
+html[data-fx="off"] .stage-tags {
   display: none;
+}
+html[data-fx="off"] .rift-glitch--a,
+html[data-fx="off"] .rift-glitch--b {
+  opacity: 0 !important;
+}
+
+/* copy-email feedback and the secondary mail link */
+.exit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem 1rem;
+  margin-top: 1.75rem;
+}
+.exit-btn--alt {
+  background: var(--icy);
+  font-size: clamp(1.9rem, 5vw, 3rem);
+  cursor: pointer;
+}
+.exit-btn--alt[data-copied="true"] {
+  background: var(--cyan);
 }
